@@ -1,5 +1,6 @@
 #ifndef HIGHLIGHTING_H
 #define HIGHLIGHTING_H
+#include "u8String.h"
 #include "la.h"
 #include "providers.h"
 #include <string>

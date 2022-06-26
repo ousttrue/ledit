@@ -2,6 +2,7 @@
 #define PROVIDERS_H
 #include <vector>
 #include <filesystem>
+#include <iostream>
 #include "la.h"
 #include "utils.h"
 #include "../third-party/json/json.hpp"

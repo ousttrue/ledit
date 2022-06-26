@@ -1,5 +1,4 @@
-#ifndef CURSOR_H
-#define CURSOR_H
+#pragma once
 
 #include <string>
 #include <map>
@@ -29,6 +28,7 @@ struct CommentEntry {
   int yStart;
   std::u16string commentStr;
 };
+
 class Cursor {
  public:
   bool edited = false;
@@ -1144,4 +1144,8 @@ void appendWithLines(std::u16string content) {
     return ls;
   }
 };
-#endif
+
+struct CursorEntry {
+  Cursor cursor;
+  std::string path;
+};

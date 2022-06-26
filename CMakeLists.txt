@@ -18,7 +18,7 @@ set(GLFW_BUILD_TESTS
 set(GLFW_BUILD_EXAMPLES
     OFF
     CACHE BOOL "" FORCE)
-add_executable(ledit src/glad.c src/la.cc src/main.cc)
+add_executable(ledit src/glad.c src/la.cc src/main.cc src/state.cc src/u8String.cc src/languages.cc src/utils.cpp)
 add_subdirectory(third-party/glfw)
 add_subdirectory(third-party/freetype2)
 

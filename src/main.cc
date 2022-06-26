@@ -13,13 +13,8 @@
 #include <Windows.h>
 #endif
 #include "la.h"
-#include "glad.h"
-#include "../third-party/glfw/include/GLFW/glfw3.h"
-#include "../third-party/freetype2/include/ft2build.h"
-#include FT_FREETYPE_H
 #include "state.h"
 #include "shader.h"
-#include "font_atlas.h"
 #include "cursor.h"
 #include "shaders.h"
 #include "highlighting.h"
