@@ -242,7 +242,7 @@ void State::inform(bool success, bool shift_pressed) {
           std::string fName = split[split.size() - 1];
           fileName = create(fName);
           std::string window_name = "ledit: " + path;
-          glfwSetWindowTitle(window, window_name.c_str());
+          // glfwSetWindowTitle(window, window_name.c_str());
           tryEnableHighlighting();
         }
       } else {
@@ -464,7 +464,7 @@ void State::activateCursor(size_t cursorIndex) {
     renderCoords();
   }
   std::string window_name = "ledit: " + (path.length() ? path : "New File");
-  glfwSetWindowTitle(window, window_name.c_str());
+  // glfwSetWindowTitle(window, window_name.c_str());
 }
 
 void State::addCursor(std::string path) {

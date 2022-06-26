@@ -25,7 +25,7 @@ public:
   Highlighter highlighter;
   Provider provider;
   class FontAtlas *atlas;
-  class GLFWwindow *window;
+  // class GLFWwindow *window;
   ReplaceBuffer replaceBuffer;
   float WIDTH, HEIGHT;
   bool hasHighlighting;
