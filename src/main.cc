@@ -24,30 +24,25 @@
 #include "shaders.h"
 #include "highlighting.h"
 #include "languages.h"
+
 State *gState = nullptr;
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-  glViewport(0, 0, width, height);
-  if (gState != nullptr) {
-    gState->invalidateCache();
+  if (!gState)
+    return;
 #ifdef _WIN32
-    float xscale, yscale;
-    glfwGetWindowContentScale(window, &xscale, &yscale);
-    gState->WIDTH = (float)width * xscale;
-    gState->HEIGHT = (float)height * yscale;
+  float xscale, yscale;
+  glfwGetWindowContentScale(window, &xscale, &yscale);
+  gState->resize((float)width * xscale, (float)height * yscale);
 #else
-    gState->WIDTH = (float)width;
-    gState->HEIGHT = (float)height;
+  gState->resize((float)width, (float)height);
 #endif
-  }
 }
+
 void window_focus_callback(GLFWwindow *window, int focused) {
   if (!gState)
     return;
-  gState->invalidateCache();
-  gState->focused = focused;
-  if (focused) {
-    gState->checkChanged();
-  }
+  gState->focus(focused);
 }
 
 void mouse_button_callback(GLFWwindow *window, int button, int action,
