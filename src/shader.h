@@ -1,6 +1,6 @@
 #pragma once
-#include "la.h"
 #include "glad.h"
+#include "la.h"
 #include "utils.h"
 #include <iostream>
 #include <vector>

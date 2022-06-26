@@ -1,24 +1,19 @@
 #if (MAC_OS_X_VERSION_MAX_ALLOWED < 120000) // Before macOS 12 Monterey
 #define kIOMainPortDefault kIOMasterPortDefault
 #endif
-#include <iostream>
-#include <math.h>
-#include <map>
-#include <string>
-#include <vector>
+
+#include "shader.h"
 #ifndef __APPLE__
 #include <algorithm>
 #endif
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-#include "la.h"
 #include "state.h"
-#include "shader.h"
 #include "cursor.h"
 #include "shaders.h"
-#include "highlighting.h"
-#include "languages.h"
+#include <GLFW/glfw3.h>
+
 
 State *getState(GLFWwindow *window) {
   return reinterpret_cast<State *>(glfwGetWindowUserPointer(window));

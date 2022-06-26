@@ -1,13 +1,8 @@
 #pragma once
 #include <vector>
-#include <map>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include "shader.h"
-#include "../third-party/glfw/include/GLFW/glfw3.h"
+#include <stdint.h>
 #include "highlighting.h"
-#include "languages.h"
 #include "providers.h"
 
 struct ReplaceBuffer {
@@ -16,13 +11,14 @@ struct ReplaceBuffer {
 };
 
 class State {
+
 public:
-  GLuint vao, vbo;
+  uint32_t vao, vbo;
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
-  GLuint sel_vao, sel_vbo;
-  GLuint highlight_vao, highlight_vbo;
+  uint32_t sel_vao, sel_vbo;
+  uint32_t highlight_vao, highlight_vbo;
   class Cursor *cursor;
   std::vector<class CursorEntry *> cursors;
   size_t activeIndex;

@@ -1,8 +1,10 @@
+#include "glad.h"
 #include "state.h"
 #include "shader.h"
 #include "cursor.h"
 #include "font_atlas.h"
 #include "languages.h"
+#include <GLFW/glfw3.h>
 
 void State::resize(float w, float h) {
   glViewport(0, 0, w, h);
