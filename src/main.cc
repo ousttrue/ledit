@@ -340,9 +340,9 @@ int main(int argc, char** argv) {
     glfwGetWindowContentScale(window, &xscale, &yscale);
     state.WIDTH *= xscale;
     state.HEIGHT *= yscale;
-    int fontSize;
-    float WIDTH;
-    float HEIGHT;
+    int fontSize=0;
+    float WIDTH=0;
+    float HEIGHT=0;
     auto maxRenderWidth = 0;
     while (!glfwWindowShouldClose(window))
     {
