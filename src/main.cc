@@ -25,11 +25,12 @@
 #include "highlighting.h"
 #include "languages.h"
 
-State *gState = nullptr;
+State *getState(GLFWwindow *window) {
+  return reinterpret_cast<State *>(glfwGetWindowUserPointer(window));
+}
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-  if (!gState)
-    return;
+  auto gState = getState(window);
 #ifdef _WIN32
   float xscale, yscale;
   glfwGetWindowContentScale(window, &xscale, &yscale);
@@ -40,13 +41,13 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 void window_focus_callback(GLFWwindow *window, int focused) {
-  if (!gState)
-    return;
+  auto gState = getState(window);
   gState->focus(focused);
 }
 
 void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods) {
+  auto gState = getState(window);
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
     gState->invalidateCache();
     double xpos, ypos;
@@ -59,8 +60,7 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
 }
 
 void character_callback(GLFWwindow *window, unsigned int codepoint) {
-  if (gState == nullptr)
-    return;
+  auto gState = getState(window);
   gState->invalidateCache();
   gState->exitFlag = false;
 #ifdef _WIN32
@@ -90,10 +90,10 @@ void character_callback(GLFWwindow *window, unsigned int codepoint) {
   gState->cursor->append((char16_t)codepoint);
   gState->renderCoords();
 }
+
 void key_callback(GLFWwindow *window, int key, int scancode, int action,
                   int mods) {
-  if (gState == nullptr)
-    return;
+  auto gState = getState(window);
   gState->invalidateCache();
   if (key == GLFW_KEY_ESCAPE) {
     if (action == GLFW_PRESS) {
@@ -268,13 +268,14 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
       gState->renderCoords();
   }
 }
+
 int main(int argc, char **argv) {
 #ifdef _WIN32
   ShowWindow(GetConsoleWindow(), SW_HIDE);
 #endif
   std::string initialPath = argc >= 2 ? std::string(argv[1]) : "";
   State state(1280, 720, 30);
-  gState = &state;
+
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -295,6 +296,7 @@ int main(int argc, char **argv) {
     glfwTerminate();
     return -1;
   }
+  glfwSetWindowUserPointer(window, &state);
   state.window = window;
   state.addCursor(initialPath);
 
