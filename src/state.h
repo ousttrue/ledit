@@ -16,11 +16,13 @@ class State {
 public:
   std::shared_ptr<class VBO> vbo;
   std::shared_ptr<class VAO> vao;
+  std::shared_ptr<class VBO> sel_vbo;
+  std::shared_ptr<class VAO> sel_vao;
+  std::shared_ptr<class VBO> highlight_vbo;
+  std::shared_ptr<class VAO> highlight_vao;
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
-  uint32_t sel_vao, sel_vbo;
-  uint32_t highlight_vao, highlight_vbo;
   class Cursor *cursor;
   std::vector<class CursorEntry *> cursors;
   size_t activeIndex;

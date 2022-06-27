@@ -86,20 +86,16 @@ int main(int argc, char **argv) {
 
     if (state.highlightLine) {
       selection_shader.use();
-      glBindVertexArray(state.highlight_vao);
       auto color = state.provider.colors.highlight_color;
       selection_shader.set4f("selection_color", color.x, color.y, color.z,
                              color.w);
       selection_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
-      glBindBuffer(GL_ARRAY_BUFFER, state.highlight_vbo);
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
                                      ((cursor->y - cursor->skip) * toOffset)),
                            vec2f((((int32_t)WIDTH / 2) * 2) - 20, toOffset)};
-      glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(SelectionEntry), &entry);
-
-      glBindBuffer(GL_ARRAY_BUFFER, 0);
-      glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 6, 1);
+      state.highlight_vbo->upload(&entry, sizeof(SelectionEntry));
+      state.highlight_vao->drawTriangleStripInstance(6, 1);
     }
     text_shader.use();
     text_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
@@ -440,20 +436,16 @@ int main(int argc, char **argv) {
       }
       if (selectionBoundaries.size()) {
         selection_shader.use();
-        glBindVertexArray(state.sel_vao);
         auto color = state.provider.colors.selection_color;
         selection_shader.set4f("selection_color", color.x, color.y, color.z,
                                color.w);
         selection_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
-        glBindBuffer(GL_ARRAY_BUFFER, state.sel_vbo);
 
-        glBufferSubData(GL_ARRAY_BUFFER, 0,
-                        sizeof(SelectionEntry) * selectionBoundaries.size(),
-                        &selectionBoundaries[0]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 6,
-                              (GLsizei)selectionBoundaries.size());
+        state.sel_vbo->upload(&selectionBoundaries[0],
+                              sizeof(SelectionEntry) *
+                                  selectionBoundaries.size());
+        state.sel_vao->drawTriangleStripInstance(
+            6, (GLsizei)selectionBoundaries.size());
       }
     }
     glBindVertexArray(0);

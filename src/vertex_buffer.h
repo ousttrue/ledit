@@ -22,4 +22,5 @@ public:
   void bind();
   void unbind();
   void drawTriangleStrip(uint32_t count);
+  void drawTriangleStripInstance(uint32_t count, uint32_t instance);
 };

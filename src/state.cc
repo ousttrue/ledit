@@ -484,51 +484,59 @@ void State::addCursor(std::string path) {
 void State::init() {
   atlas = std::make_shared<FontAtlas>(provider.fontPath, fontSize);
 
-  vbo = std::make_shared<VBO>();
-  vbo->bind();
-  vbo->dynamicData(sizeof(RenderChar) * 600 * 1000);
+  {
+    // vbo
+    vbo = std::make_shared<VBO>();
+    vbo->dynamicData(sizeof(RenderChar) * 600 * 1000);
 
-  vao = std::make_shared<VAO>();
-  vao->bind();
-  activate_entries();
-  vao->unbind();
-  vbo->unbind();
+    // vao
+    vao = std::make_shared<VAO>();
+    vao->bind();
+    vbo->bind();
+    activate_entries();
+    vao->unbind();
+    vbo->unbind();
+  }
 
+  {
+    // selection buffer;
+    sel_vbo = std::make_shared<VBO>();
+    sel_vbo->dynamicData(sizeof(SelectionEntry) * 16);
 
-  // //selection buffer;
-  glGenVertexArrays(1, &sel_vao);
-  glGenBuffers(1, &sel_vbo);
-  glBindVertexArray(sel_vao);
-  glBindBuffer(GL_ARRAY_BUFFER, sel_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(SelectionEntry) * 16, nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                        (void *)offsetof(SelectionEntry, pos));
-  glVertexAttribDivisor(0, 1);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                        (void *)offsetof(SelectionEntry, size));
-  glVertexAttribDivisor(1, 1);
+    // vao
+    sel_vao = std::make_shared<VAO>();
+    sel_vao->bind();
+    sel_vbo->bind();
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
+                          (void *)offsetof(SelectionEntry, pos));
+    glVertexAttribDivisor(0, 1);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
+                          (void *)offsetof(SelectionEntry, size));
+    glVertexAttribDivisor(1, 1);
+    sel_vao->unbind();
+    sel_vbo->unbind();
+  }
 
-  // //selection buffer;
-  glGenVertexArrays(1, &highlight_vao);
-  glGenBuffers(1, &highlight_vbo);
-  glBindVertexArray(highlight_vao);
-  glBindBuffer(GL_ARRAY_BUFFER, highlight_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(SelectionEntry), nullptr,
-               GL_DYNAMIC_DRAW);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                        (void *)offsetof(SelectionEntry, pos));
-  glVertexAttribDivisor(0, 1);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                        (void *)offsetof(SelectionEntry, size));
-  glVertexAttribDivisor(1, 1);
+  {
+    highlight_vbo = std::make_shared<VBO>();
+    highlight_vbo->dynamicData(sizeof(SelectionEntry));
 
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+    highlight_vao = std::make_shared<VAO>();
+    highlight_vao->bind();
+    highlight_vbo->bind();
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
+                          (void *)offsetof(SelectionEntry, pos));
+    glVertexAttribDivisor(0, 1);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
+                          (void *)offsetof(SelectionEntry, size));
+    glVertexAttribDivisor(1, 1);
+    highlight_vao->unbind();
+    highlight_vbo->unbind();
+  }
 }
 
 void State::activate_entries() {
