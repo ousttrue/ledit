@@ -481,6 +481,8 @@ void State::addCursor(std::string path) {
 }
 
 void State::init() {
+  atlas = std::make_shared<FontAtlas>(provider.fontPath, fontSize);
+
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
   glBindVertexArray(vao);

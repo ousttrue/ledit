@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <memory>
 #include <stdint.h>
 #include "highlighting.h"
 #include "providers.h"
@@ -24,7 +25,7 @@ public:
   size_t activeIndex;
   Highlighter highlighter;
   Provider provider;
-  class FontAtlas *atlas;
+  std::shared_ptr<class FontAtlas> atlas;
   // class GLFWwindow *window;
   ReplaceBuffer replaceBuffer;
   float WIDTH, HEIGHT;

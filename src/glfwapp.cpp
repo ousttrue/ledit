@@ -34,7 +34,7 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
     float xscale, yscale;
     glfwGetWindowContentScale(window, &xscale, &yscale);
     gState->cursor->setPosFromMouse((float)xpos * xscale, (float)ypos * yscale,
-                                    gState->atlas);
+                                    gState->atlas.get());
   }
 }
 
