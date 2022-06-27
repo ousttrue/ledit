@@ -16,40 +16,56 @@
 #include "font_atlas.h"
 #include "vertex_buffer.h"
 
-void activate_entries() {
-  // pos
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, pos));
-  glVertexAttribDivisor(0, 1);
+struct VertexLayout {
+  GLenum type; // GL_FLOAT
+  GLint size;  // 1, 2, 3, 4(scalar, vec2, vec3, vec4)
+  size_t offset;
+  GLuint divisor;
+};
 
-  // size
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, size));
-  glVertexAttribDivisor(1, 1);
+VertexLayout textVertexLayout[] = {
+    // pos
+    {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
+    // size
+    {GL_FLOAT, 2, offsetof(RenderChar, size), 1},
+    // uv_pos
+    {GL_FLOAT, 2, offsetof(RenderChar, uv_pos), 1},
+    // uv_size
+    {GL_FLOAT, 2, offsetof(RenderChar, uv_size), 1},
+    // fg_color
+    {GL_FLOAT, 4, offsetof(RenderChar, fg_color), 1},
+    // bg_color
+    {GL_FLOAT, 4, offsetof(RenderChar, bg_color), 1},
+};
 
-  // uv_pos
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, uv_pos));
-  glVertexAttribDivisor(2, 1);
-  // uv_size
-  glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, uv_size));
-  glVertexAttribDivisor(3, 1);
-  // fg_color
-  glEnableVertexAttribArray(4);
-  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, fg_color));
-  glVertexAttribDivisor(4, 1);
-  // bg_color
-  glEnableVertexAttribArray(5);
-  glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(RenderChar),
-                        (void *)offsetof(RenderChar, bg_color));
-  glVertexAttribDivisor(5, 1);
-}
+class Drawable {
+
+  Drawable(const Drawable &) = delete;
+  Drawable &operator=(const Drawable &) = delete;
+
+public:
+  Shader shader;
+  VBO vbo;
+  VAO vao;
+  Drawable(const std::string &vertex, const std::string &fragment,
+           const std::vector<std::string> &others, size_t stride,
+           const VertexLayout *layouts, size_t len, size_t dataSize)
+      : shader(vertex, fragment, others) {
+
+    vbo.dynamicData(dataSize);
+  
+    vao.bind();
+    vbo.bind();
+    for (size_t i = 0; i < len; ++i, ++layouts) {
+      glEnableVertexAttribArray(i);
+      glVertexAttribPointer(i, layouts->size, layouts->type, GL_FALSE, stride,
+                            (void *)layouts->offset);
+      glVertexAttribDivisor(i, layouts->divisor);
+    }
+    vao.unbind();
+    vbo.unbind();
+  }
+};
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -77,24 +93,14 @@ int main(int argc, char **argv) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   state.init();
 
-  VBO vbo;
-  VAO vao;
+  Drawable text(text_shader_vert, text_shader_frag, {}, sizeof(RenderChar),
+                textVertexLayout, _countof(textVertexLayout),
+                sizeof(RenderChar) * 600 * 1000);
+
   VBO sel_vbo;
   VAO sel_vao;
   VBO highlight_vbo;
   VAO highlight_vao;
-  {
-    // vbo
-    vbo.dynamicData(sizeof(RenderChar) * 600 * 1000);
-
-    // vao
-    vao.bind();
-    vbo.bind();
-    activate_entries();
-    vao.unbind();
-    vbo.unbind();
-  }
-
   {
     // selection buffer;
     sel_vbo.dynamicData(sizeof(SelectionEntry) * 16);
@@ -131,8 +137,6 @@ int main(int argc, char **argv) {
     highlight_vbo.unbind();
   }
 
-  Shader text_shader(text_shader_vert, text_shader_frag, {});
-  text_shader.use();
   Shader cursor_shader(cursor_shader_vert, cursor_shader_frag,
                        {camera_shader_vert});
   Shader selection_shader(selection_shader_vert, selection_shader_frag, {});
@@ -188,8 +192,8 @@ int main(int argc, char **argv) {
       highlight_vao.drawTriangleStripInstance(6, 1);
     }
 
-    text_shader.use();
-    text_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+    text.shader.use();
+    text.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
@@ -357,8 +361,8 @@ int main(int argc, char **argv) {
       }
     }
 
-    vbo.upload(&entries[0], sizeof(RenderChar) * entries.size());
-    vao.drawTriangleStripInstance(6, (GLsizei)entries.size());
+    text.vbo.upload(&entries[0], sizeof(RenderChar) * entries.size());
+    text.vao.drawTriangleStripInstance(6, (GLsizei)entries.size());
 
     if (state.focused) {
       cursor_shader.use();
@@ -371,7 +375,7 @@ int main(int argc, char **argv) {
                         5 + statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        vao.drawTriangleStrip(4);
+        text.vao.drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
 
@@ -385,7 +389,7 @@ int main(int argc, char **argv) {
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
                         (toOffset * ((cursor->y - cursor->skip) + 1));
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        vao.drawTriangleStrip(4);
+        text.vao.drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
     }
@@ -532,10 +536,9 @@ int main(int argc, char **argv) {
         selection_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
 
         sel_vbo.upload(&selectionBoundaries[0],
-                              sizeof(SelectionEntry) *
-                                  selectionBoundaries.size());
-        sel_vao.drawTriangleStripInstance(
-            6, (GLsizei)selectionBoundaries.size());
+                       sizeof(SelectionEntry) * selectionBoundaries.size());
+        sel_vao.drawTriangleStripInstance(6,
+                                          (GLsizei)selectionBoundaries.size());
       }
     }
     glBindVertexArray(0);

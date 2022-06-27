@@ -48,3 +48,5 @@ void VAO::drawTriangleStripInstance(uint32_t count, uint32_t instance) {
   glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, count, instance);
   unbind();
 }
+
+
