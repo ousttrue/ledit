@@ -4,6 +4,7 @@
 #include "cursor.h"
 #include "font_atlas.h"
 #include "languages.h"
+#include "vertex_buffer.h"
 #include <GLFW/glfw3.h>
 
 void State::resize(float w, float h) {
@@ -483,14 +484,14 @@ void State::addCursor(std::string path) {
 void State::init() {
   atlas = std::make_shared<FontAtlas>(provider.fontPath, fontSize);
 
+  vbo = std::make_shared<VBO>();
+  vbo->bind();
+  vbo->dynamicData(sizeof(RenderChar) * 600 * 1000);
+
   glGenVertexArrays(1, &vao);
-  glGenBuffers(1, &vbo);
   glBindVertexArray(vao);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
   // TODO set size of vbo base on buffer size?
 
-  glBufferData(GL_ARRAY_BUFFER, sizeof(RenderChar) * 600 * 1000, nullptr,
-               GL_DYNAMIC_DRAW);
   activate_entries();
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);

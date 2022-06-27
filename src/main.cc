@@ -14,6 +14,7 @@
 #include "cursor.h"
 #include "shaders.h"
 #include "font_atlas.h"
+#include "vertex_buffer.h"
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -105,7 +106,7 @@ int main(int argc, char **argv) {
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(state.vao);
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
-    glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
+    // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
     std::vector<RenderChar> entries;
     std::u16string::const_iterator c;
     std::string::const_iterator cc;
@@ -269,11 +270,8 @@ int main(int argc, char **argv) {
       }
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
-    glBufferSubData(
-        GL_ARRAY_BUFFER, 0, sizeof(RenderChar) * entries.size(),
-        &entries[0]); // be sure to use glBufferSubData and not glBufferData
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    state.vbo->upload(&entries[0], sizeof(RenderChar) * entries.size());
+
     glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 6, (GLsizei)entries.size());
     if (state.focused) {
       cursor_shader.use();

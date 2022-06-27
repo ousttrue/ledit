@@ -14,7 +14,8 @@ struct ReplaceBuffer {
 class State {
 
 public:
-  uint32_t vao, vbo;
+  std::shared_ptr<class VBO> vbo;
+  uint32_t vao;
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
