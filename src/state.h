@@ -15,7 +15,7 @@ class State {
 
 public:
   std::shared_ptr<class VBO> vbo;
-  uint32_t vao;
+  std::shared_ptr<class VAO> vao;
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;

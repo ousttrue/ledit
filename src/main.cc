@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     text_shader.use();
     text_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
     glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(state.vao);
+    state.vao->bind();
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
     std::vector<RenderChar> entries;
@@ -138,7 +138,8 @@ int main(int argc, char **argv) {
     }
     maxRenderWidth = (WIDTH / 2) - 20 - linesAdvance;
     auto skipNow = cursor->skip;
-    auto *allLines = cursor->getContent(state.atlas.get(), maxRenderWidth, false);
+    auto *allLines =
+        cursor->getContent(state.atlas.get(), maxRenderWidth, false);
     state.reHighlight();
     ypos = (-(HEIGHT / 2));
     xpos = -(int32_t)WIDTH / 2 + 20 + linesAdvance;
@@ -255,8 +256,8 @@ int main(int argc, char **argv) {
       ypos = (float)HEIGHT / 2 - toOffset - 10;
       std::u16string status = state.miniBuf;
       for (c = status.begin(); c != status.end(); c++) {
-        entries.push_back(state.atlas->render(*c, xpos, ypos,
-                                       state.provider.colors.minibuffer_color));
+        entries.push_back(state.atlas->render(
+            *c, xpos, ypos, state.provider.colors.minibuffer_color));
         xpos += state.atlas->getAdvance(*c);
       }
 
@@ -280,14 +281,11 @@ int main(int argc, char **argv) {
       if (state.mode != 0 && state.mode != 32) {
         // use cursor for minibuffer
         float cursorX = -(int32_t)(WIDTH / 2) + 15 +
-                        (state.atlas->getAdvance(cursor->getCurrentAdvance())) + 5 +
-                        statusAdvance;
+                        (state.atlas->getAdvance(cursor->getCurrentAdvance())) +
+                        5 + statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-
-        glBindVertexArray(state.vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
+        state.vao->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
 
@@ -301,9 +299,7 @@ int main(int argc, char **argv) {
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
                         (toOffset * ((cursor->y - cursor->skip) + 1));
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        glBindVertexArray(state.vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        glBindVertexArray(0);
+        state.vao->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
     }

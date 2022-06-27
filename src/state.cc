@@ -488,13 +488,12 @@ void State::init() {
   vbo->bind();
   vbo->dynamicData(sizeof(RenderChar) * 600 * 1000);
 
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
-  // TODO set size of vbo base on buffer size?
-
+  vao = std::make_shared<VAO>();
+  vao->bind();
   activate_entries();
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
+  vao->unbind();
+  vbo->unbind();
+
 
   // //selection buffer;
   glGenVertexArrays(1, &sel_vao);
