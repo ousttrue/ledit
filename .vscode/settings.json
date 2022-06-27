@@ -1,4 +1,7 @@
 {
+    "clangd.arguments": [
+        "-std=c++17"
+    ],
     "files.associations": {
         "filesystem": "cpp",
         "algorithm": "cpp",
