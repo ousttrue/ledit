@@ -14,12 +14,6 @@ struct ReplaceBuffer {
 class State {
 
 public:
-  std::shared_ptr<class VBO> vbo;
-  std::shared_ptr<class VAO> vao;
-  std::shared_ptr<class VBO> sel_vbo;
-  std::shared_ptr<class VAO> sel_vao;
-  std::shared_ptr<class VBO> highlight_vbo;
-  std::shared_ptr<class VAO> highlight_vao;
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
@@ -87,7 +81,4 @@ public:
   void activateCursor(size_t cursorIndex);
   void addCursor(std::string path);
   void init();
-
-private:
-  void activate_entries();
 };
