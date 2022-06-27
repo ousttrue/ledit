@@ -13,6 +13,7 @@
 #include "state.h"
 #include "cursor.h"
 #include "shaders.h"
+#include "font_atlas.h"
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
