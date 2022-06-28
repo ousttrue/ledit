@@ -4,7 +4,7 @@
 #include <map>
 #include <iostream>
 #include "la.h"
-#include "shader.h"
+#include "glutil/shader.h"
 #include "../third-party/freetype2/include/ft2build.h"
 #include FT_FREETYPE_H
 #include "base64.h"

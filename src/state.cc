@@ -1,9 +1,8 @@
 #include "state.h"
-#include "shader.h"
+#include "glutil/shader.h"
 #include "cursor.h"
 #include "font_atlas.h"
 #include "languages.h"
-#include "vertex_buffer.h"
 #include <GLFW/glfw3.h>
 
 void State::resize(float w, float h) {

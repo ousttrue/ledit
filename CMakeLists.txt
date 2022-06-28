@@ -18,9 +18,13 @@ set(GLFW_BUILD_TESTS
 set(GLFW_BUILD_EXAMPLES
     OFF
     CACHE BOOL "" FORCE)
+
+subdirs(glad)
+
 add_executable(
   ledit
-  src/glad.c
+  src/glutil/vertex_buffer.cpp
+  src/glutil/drawable.cpp
   src/la.cc
   src/main.cc
   src/state.cc
@@ -28,16 +32,14 @@ add_executable(
   src/languages.cc
   src/utils.cpp
   src/glfwapp.cpp
-  src/cursor.cpp
-  src/vertex_buffer.cpp
-  src/drawable.cpp)
+  src/cursor.cpp)
 add_subdirectory(third-party/glfw)
 add_subdirectory(third-party/freetype2)
 
 if(NOT WIN32 AND NOT APPLE)
-  target_link_libraries(ledit glfw freetype fontconfig dl)
+  target_link_libraries(ledit PRIVATE glad glfw freetype fontconfig dl)
 else()
-  target_link_libraries(ledit PUBLIC glfw freetype)
+  target_link_libraries(ledit PRIVATE glad glfw freetype)
 endif()
 
 if(APPLE)

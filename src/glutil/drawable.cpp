@@ -1,8 +1,9 @@
+#include <glad.h>
 #include "drawable.h"
 #include "vertex_buffer.h"
 #include "shader.h"
 
-class DrawableImpl {
+struct DrawableImpl {
 
   DrawableImpl(const DrawableImpl &) = delete;
   DrawableImpl &operator=(const DrawableImpl &) = delete;
@@ -10,7 +11,6 @@ class DrawableImpl {
   VBO vbo;
   VAO vao;
 
-public:
   DrawableImpl(const std::vector<uint8_t> &vertex,
                const std::vector<uint8_t> &fragment,
                const std::vector<std::vector<uint8_t>> &others, size_t stride,
@@ -31,14 +31,6 @@ public:
     vbo.unbind();
   }
 
-  void use() { shader.use(); }
-  void set(const std::string &name, const Vec2f &value) {
-    shader.set2f(name, value.x, value.y);
-  }
-  void set(const std::string &name, const Vec4f &value) {
-    shader.set4f(name, value.x, value.y, value.z, value.w);
-  }
-
   void drawTriangleStrip(int count) { vao.drawTriangleStrip(count); }
 
   void drawUploadInstance(const void *data, size_t len, int count,
@@ -57,12 +49,13 @@ Drawable::Drawable(const std::vector<uint8_t> &vertex,
                              dataSize)) {}
 Drawable::~Drawable() { delete _impl; }
 
-void Drawable::use() { _impl->use(); }
-void Drawable::set(const std::string &name, const Vec2f &value) {
-  _impl->set(name, value);
+void Drawable::use() { _impl->shader.use(); }
+void Drawable::set(const std::string &name, float x, float y) {
+  _impl->shader.set2f(name, x, y);
 }
-void Drawable::set(const std::string &name, const Vec4f &value) {
-  _impl->set(name, value);
+void Drawable::set(const std::string &name, float x, float y, float z,
+                   float w) {
+  _impl->shader.set4f(name, x, y, z, w);
 }
 void Drawable::drawTriangleStrip(int count) { _impl->drawTriangleStrip(count); }
 void Drawable::drawUploadInstance(const void *data, size_t len, int count,

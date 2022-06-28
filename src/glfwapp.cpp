@@ -1,4 +1,4 @@
-#include "glad.h"
+#include <glad.h>
 #include "glfwapp.h"
 #include "state.h"
 #include "cursor.h"

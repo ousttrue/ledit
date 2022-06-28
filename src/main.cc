@@ -5,9 +5,9 @@
 #include "state.h"
 #include "cursor.h"
 #include "font_atlas.h"
-#include "drawable.h"
 #include "glfwapp.h"
-#include "shader.h"
+#include "glutil/drawable.h"
+#include "glutil/shader.h"
 #include <memory>
 #include <fstream>
 #ifndef __APPLE__
@@ -132,8 +132,8 @@ int main(int argc, char **argv) {
     if (state.highlightLine) {
       selection->use();
       auto color = state.provider.colors.highlight_color;
-      selection->set("selection_color", color);
-      selection->set("resolution", Vec2f(WIDTH, HEIGHT));
+      selection->set("selection_color", color.x, color.y, color.z, color.w);
+      selection->set("resolution", WIDTH, HEIGHT);
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
                                      ((cursor->y - cursor->skip) * toOffset)),
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     }
 
     text->use();
-    text->set("resolution", Vec2f(WIDTH, HEIGHT));
+    text->set("resolution", WIDTH, HEIGHT);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
@@ -480,8 +480,8 @@ int main(int argc, char **argv) {
       if (selectionBoundaries.size()) {
         selection->use();
         auto color = state.provider.colors.selection_color;
-        selection->set("selection_color", color);
-        selection->set("resolution", Vec2f(WIDTH, HEIGHT));
+        selection->set("selection_color", color.x, color.y, color.z, color.w);
+        selection->set("resolution", WIDTH, HEIGHT);
 
         selection->drawUploadInstance(&selectionBoundaries[0],
                                       sizeof(SelectionEntry) *

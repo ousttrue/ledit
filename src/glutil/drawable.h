@@ -1,5 +1,4 @@
 #pragma once
-#include "la.h"
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -25,8 +24,8 @@ public:
   ~Drawable();
 
   void use();
-  void set(const std::string &name, const Vec2f &value);
-  void set(const std::string &name, const Vec4f &value);
+  void set(const std::string &name, float x, float y);
+  void set(const std::string &name, float x, float y, float z, float w);
   void drawTriangleStrip(int count);
   void drawUploadInstance(const void *data, size_t len, int count,
                           int instance);

@@ -1,7 +1,7 @@
 #pragma once
-#include "glad.h"
-#include "la.h"
-#include "utils.h"
+#include "../la.h"
+#include "../utils.h"
+#include <glad.h>
 #include <stdint.h>
 #include <iostream>
 #include <vector>
