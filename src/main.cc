@@ -2,6 +2,7 @@
 #define kIOMainPortDefault kIOMasterPortDefault
 #endif
 
+#include <glad.h>
 #include "state.h"
 #include "cursor.h"
 #include "font_atlas.h"
@@ -47,7 +48,7 @@ static std::vector<uint8_t> readbytes(const std::string &path) {
   ifs.clear();
   ifs.seekg(0, ifs.beg);
   buffer[end] = 0;
-  ifs.read((char*)buffer.data(), end);
+  ifs.read((char *)buffer.data(), end);
   return buffer;
 }
 
@@ -62,9 +63,16 @@ int main(int argc, char **argv) {
   GlfwApp app;
 
   State state(1280, 720, 30);
-  if (!app.createWindow(window_name.c_str(), state.WIDTH, state.HEIGHT, &state,
-                        state.provider.allowTransparency)) {
-    return -1;
+  auto getProc =
+      app.createWindow(window_name.c_str(), state.WIDTH, state.HEIGHT, &state,
+                       state.provider.allowTransparency);
+  if (!getProc) {
+    return 1;
+  }
+
+  if (!gladLoadGLLoader((GLADloadproc)getProc)) {
+    std::cout << "Failed to initialize GLAD" << std::endl;
+    return 2;
   }
 
   state.addCursor(initialPath);

@@ -1,4 +1,3 @@
-#include <glad.h>
 #include "glfwapp.h"
 #include "state.h"
 #include "cursor.h"
@@ -261,7 +260,7 @@ public:
     glfwTerminate();
   }
 
-  bool createWindow(const char *window_name, int width, int height,
+  void* createWindow(const char *window_name, int width, int height,
                     void *userpointer, bool allowTransparency) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -278,15 +277,10 @@ public:
       int code = glfwGetError(&description);
       std::cout << "Failed to create GLFW _window: " << description
                 << std::endl;
-      return false;
+      return nullptr;
     }
 
     glfwMakeContextCurrent(_window);
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-      std::cout << "Failed to initialize GLAD" << std::endl;
-      return false;
-    }
-
     glfwSetWindowUserPointer(_window, userpointer);
     glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(_window, framebuffer_size_callback);
@@ -297,7 +291,7 @@ public:
     GLFWcursor *mouseCursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
     glfwSetCursor(_window, mouseCursor);
 
-    return true;
+    return glfwGetProcAddress;
   }
 
   bool isAlive() { return !glfwWindowShouldClose(_window); }
@@ -318,7 +312,7 @@ GlfwApp::GlfwApp() : _impl(new GlfwAppImpl) {}
 
 GlfwApp::~GlfwApp() { delete _impl; }
 
-bool GlfwApp::createWindow(const char *title, int w, int h, void *userpointer,
+void* GlfwApp::createWindow(const char *title, int w, int h, void *userpointer,
                            bool allowTransparency) {
   return _impl->createWindow(title, w, h, userpointer, allowTransparency);
 }
