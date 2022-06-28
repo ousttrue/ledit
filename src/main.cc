@@ -4,18 +4,18 @@
 
 #include "state.h"
 #include "cursor.h"
-#include "shaders.h"
 #include "font_atlas.h"
 #include "drawable.h"
 #include "glfwapp.h"
 #include "shader.h"
+#include <memory>
+#include <fstream>
 #ifndef __APPLE__
 #include <algorithm>
 #endif
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-#include <memory>
 
 VertexLayout textVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
@@ -30,6 +30,26 @@ VertexLayout selVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(SelectionEntry, pos), 1},
     {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
 };
+
+static std::vector<uint8_t> readbytes(const std::string &path) {
+  std::ifstream ifs(path);
+  if (ifs.fail()) {
+    return {};
+  }
+
+  ifs.seekg(0, ifs.end);
+  int end = static_cast<int>(ifs.tellg());
+  if (end == 0) {
+    return {};
+  }
+
+  std::vector<uint8_t> buffer(end + 1);
+  ifs.clear();
+  ifs.seekg(0, ifs.beg);
+  buffer[end] = 0;
+  ifs.read((char*)buffer.data(), end);
+  return buffer;
+}
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -57,17 +77,19 @@ int main(int argc, char **argv) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   state.init();
 
-  auto text = std::shared_ptr<Drawable>(new Drawable(text_shader_vert, text_shader_frag, {},
-                                         sizeof(RenderChar), textVertexLayout,
-                                         _countof(textVertexLayout),
-                                         sizeof(RenderChar) * 600 * 1000));
+  auto text = std::shared_ptr<Drawable>(new Drawable(
+      readbytes("assets/text.vs"), readbytes("assets/text.fs"), {},
+      sizeof(RenderChar), textVertexLayout, _countof(textVertexLayout),
+      sizeof(RenderChar) * 600 * 1000));
 
   auto selection = std::shared_ptr<Drawable>(new Drawable(
-      selection_shader_vert, selection_shader_frag, {}, sizeof(SelectionEntry),
-      selVertexLayout, _countof(selVertexLayout), sizeof(SelectionEntry) * 16));
+      readbytes("assets/selection.vs"), readbytes("assets/selection.fs"), {},
+      sizeof(SelectionEntry), selVertexLayout, _countof(selVertexLayout),
+      sizeof(SelectionEntry) * 16));
 
-  Shader cursor_shader(cursor_shader_vert, cursor_shader_frag,
-                       {camera_shader_vert});
+  Shader cursor_shader(readbytes("assets/cursor.vs"),
+                       readbytes("assets/cursor.fs"),
+                       {readbytes("assets/camera.vs")});
 
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
@@ -288,8 +310,8 @@ int main(int argc, char **argv) {
       }
     }
 
-    text->drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(), 6,
-                            (GLsizei)entries.size());
+    text->drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(),
+                             6, (GLsizei)entries.size());
 
     if (state.focused) {
       cursor_shader.use();
@@ -462,9 +484,9 @@ int main(int argc, char **argv) {
         selection->set("resolution", Vec2f(WIDTH, HEIGHT));
 
         selection->drawUploadInstance(&selectionBoundaries[0],
-                                     sizeof(SelectionEntry) *
-                                         selectionBoundaries.size(),
-                                     6, (GLsizei)selectionBoundaries.size());
+                                      sizeof(SelectionEntry) *
+                                          selectionBoundaries.size(),
+                                      6, (GLsizei)selectionBoundaries.size());
       }
     }
     glBindVertexArray(0);

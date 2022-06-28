@@ -18,8 +18,9 @@ class Drawable {
   Drawable &operator=(const Drawable &) = delete;
 
 public:
-  Drawable(const std::string &vertex, const std::string &fragment,
-           const std::vector<std::string> &others, size_t stride,
+  Drawable(const std::vector<uint8_t> &vertex,
+           const std::vector<uint8_t> &fragment,
+           const std::vector<std::vector<uint8_t>> &others, size_t stride,
            const VertexLayout *layouts, size_t len, size_t dataSize);
   ~Drawable();
 

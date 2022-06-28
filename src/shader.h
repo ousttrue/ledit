@@ -2,6 +2,7 @@
 #include "glad.h"
 #include "la.h"
 #include "utils.h"
+#include <stdint.h>
 #include <iostream>
 #include <vector>
 
@@ -16,6 +17,7 @@ struct CharacterEntry {
   int xPos;
   char16_t c;
 };
+
 struct RenderChar {
   Vec2f pos;
   Vec2f size;
@@ -24,16 +26,19 @@ struct RenderChar {
   Vec4f fg_color;
   Vec4f bg_color;
 };
+
 struct SelectionEntry {
   Vec2f pos;
   Vec2f size;
 };
+
 class Shader {
 public:
   GLuint pid;
   std::vector<GLuint> shader_ids;
-  Shader(std::string vertex, std::string fragment,
-         std::vector<std::string> others) {
+  Shader(const std::vector<uint8_t> &vertex,
+         const std::vector<uint8_t> &fragment,
+         const std::vector<std::vector<uint8_t>> &others) {
     auto vertex_shader = compileSimple(GL_VERTEX_SHADER, vertex);
     auto fragment_shader = compileSimple(GL_FRAGMENT_SHADER, fragment);
     pid = glCreateProgram();
@@ -62,15 +67,15 @@ public:
   void use() { glUseProgram(pid); }
 
 private:
-  GLuint compileSimple(GLuint type, std::string path) {
-    std::string content = path;
+  GLuint compileSimple(GLuint type, const std::vector<uint8_t> &content) {
     auto id = glCreateShader(type);
-    const char *contentp = content.c_str();
+    const char *contentp = (const char *)content.data();
     glShaderSource(id, 1, &contentp, nullptr);
     glCompileShader(id);
     checkCompileErrors(id, shaderTypeString(type));
     return id;
   }
+
   void checkCompileErrors(GLuint shader, std::string type) {
     GLint success;
     GLchar infoLog[1024];

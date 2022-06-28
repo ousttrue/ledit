@@ -11,8 +11,9 @@ class DrawableImpl {
   VAO vao;
 
 public:
-  DrawableImpl(const std::string &vertex, const std::string &fragment,
-               const std::vector<std::string> &others, size_t stride,
+  DrawableImpl(const std::vector<uint8_t> &vertex,
+               const std::vector<uint8_t> &fragment,
+               const std::vector<std::vector<uint8_t>> &others, size_t stride,
                const VertexLayout *layouts, size_t len, size_t dataSize)
       : shader(vertex, fragment, others) {
 
@@ -47,9 +48,11 @@ public:
   }
 };
 
-Drawable::Drawable(const std::string &vertex, const std::string &fragment,
-                   const std::vector<std::string> &others, size_t stride,
-                   const VertexLayout *layouts, size_t len, size_t dataSize)
+Drawable::Drawable(const std::vector<uint8_t> &vertex,
+                   const std::vector<uint8_t> &fragment,
+                   const std::vector<std::vector<uint8_t>> &others,
+                   size_t stride, const VertexLayout *layouts, size_t len,
+                   size_t dataSize)
     : _impl(new DrawableImpl(vertex, fragment, others, stride, layouts, len,
                              dataSize)) {}
 Drawable::~Drawable() { delete _impl; }
