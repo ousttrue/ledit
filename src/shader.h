@@ -49,13 +49,13 @@ public:
     glLinkProgram(pid);
     checkCompileErrors(pid, "PROGRAM");
   }
-  void set2f(std::string name, float x, float y) {
+  void set2f(const std::string &name, float x, float y) {
     glUniform2f(glGetUniformLocation(pid, name.c_str()), x, y);
   }
-  void set4f(std::string name, float x, float y, float z, float w) {
+  void set4f(const std::string &name, float x, float y, float z, float w) {
     glUniform4f(glGetUniformLocation(pid, name.c_str()), x, y, z, w);
   }
-  void set1f(std::string name, float v) {
+  void set1f(const std::string &name, float v) {
     glUniform1f(glGetUniformLocation(pid, name.c_str()), v);
   }
 

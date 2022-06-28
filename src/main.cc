@@ -14,14 +14,7 @@
 #include "cursor.h"
 #include "shaders.h"
 #include "font_atlas.h"
-#include "vertex_buffer.h"
-
-struct VertexLayout {
-  GLenum type; // GL_FLOAT
-  GLint size;  // 1, 2, 3, 4(scalar, vec2, vec3, vec4)
-  size_t offset;
-  GLuint divisor;
-};
+#include "drawable.h"
 
 VertexLayout textVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
@@ -37,34 +30,6 @@ VertexLayout selVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
 };
 
-class Drawable {
-
-  Drawable(const Drawable &) = delete;
-  Drawable &operator=(const Drawable &) = delete;
-
-public:
-  Shader shader;
-  VBO vbo;
-  VAO vao;
-  Drawable(const std::string &vertex, const std::string &fragment,
-           const std::vector<std::string> &others, size_t stride,
-           const VertexLayout *layouts, size_t len, size_t dataSize)
-      : shader(vertex, fragment, others) {
-
-    vbo.dynamicData(dataSize);
-
-    vao.bind();
-    vbo.bind();
-    for (size_t i = 0; i < len; ++i, ++layouts) {
-      glEnableVertexAttribArray(i);
-      glVertexAttribPointer(i, layouts->size, layouts->type, GL_FALSE, stride,
-                            (void *)layouts->offset);
-      glVertexAttribDivisor(i, layouts->divisor);
-    }
-    vao.unbind();
-    vbo.unbind();
-  }
-};
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -97,11 +62,12 @@ int main(int argc, char **argv) {
                 sizeof(RenderChar) * 600 * 1000);
 
   Drawable selection(selection_shader_vert, selection_shader_frag, {},
-               sizeof(SelectionEntry), selVertexLayout,
-               _countof(selVertexLayout), sizeof(SelectionEntry) * 16);
+                     sizeof(SelectionEntry), selVertexLayout,
+                     _countof(selVertexLayout), sizeof(SelectionEntry) * 16);
 
   Shader cursor_shader(cursor_shader_vert, cursor_shader_frag,
                        {camera_shader_vert});
+
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
   state.WIDTH *= xscale;
@@ -141,21 +107,19 @@ int main(int argc, char **argv) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (state.highlightLine) {
-      selection.shader.use();
+      selection.use();
       auto color = state.provider.colors.highlight_color;
-      selection.shader.set4f("selection_color", color.x, color.y, color.z,
-                             color.w);
-      selection.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+      selection.set("selection_color", color);
+      selection.set("resolution", Vec2f(WIDTH, HEIGHT));
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
                                      ((cursor->y - cursor->skip) * toOffset)),
                            vec2f((((int32_t)WIDTH / 2) * 2) - 20, toOffset)};
-      selection.vbo.upload(&entry, sizeof(SelectionEntry));
-      selection.vao.drawTriangleStripInstance(6, 1);
+      selection.drawUploadInstance(&entry, sizeof(SelectionEntry), 6, 1);
     }
 
-    text.shader.use();
-    text.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+    text.use();
+    text.set("resolution", Vec2f(WIDTH, HEIGHT));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
@@ -323,8 +287,8 @@ int main(int argc, char **argv) {
       }
     }
 
-    text.vbo.upload(&entries[0], sizeof(RenderChar) * entries.size());
-    text.vao.drawTriangleStripInstance(6, (GLsizei)entries.size());
+    text.drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(), 6,
+                            (GLsizei)entries.size());
 
     if (state.focused) {
       cursor_shader.use();
@@ -337,7 +301,7 @@ int main(int argc, char **argv) {
                         5 + statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        text.vao.drawTriangleStrip(4);
+        text.drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
 
@@ -351,7 +315,7 @@ int main(int argc, char **argv) {
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
                         (toOffset * ((cursor->y - cursor->skip) + 1));
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        text.vao.drawTriangleStrip(4);
+        text.drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
     }
@@ -491,16 +455,15 @@ int main(int argc, char **argv) {
         }
       }
       if (selectionBoundaries.size()) {
-        selection.shader.use();
+        selection.use();
         auto color = state.provider.colors.selection_color;
-        selection.shader.set4f("selection_color", color.x, color.y, color.z,
-                               color.w);
-        selection.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+        selection.set("selection_color", color);
+        selection.set("resolution", Vec2f(WIDTH, HEIGHT));
 
-        selection.vbo.upload(&selectionBoundaries[0],
-                       sizeof(SelectionEntry) * selectionBoundaries.size());
-        selection.vao.drawTriangleStripInstance(6,
-                                          (GLsizei)selectionBoundaries.size());
+        selection.drawUploadInstance(&selectionBoundaries[0],
+                                     sizeof(SelectionEntry) *
+                                         selectionBoundaries.size(),
+                                     6, (GLsizei)selectionBoundaries.size());
       }
     }
     glBindVertexArray(0);
