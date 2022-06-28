@@ -124,10 +124,10 @@ int main(int argc, char **argv) {
     }
 
     Cursor *cursor = state.cursor;
-    float toOffset = state.atlas->atlas_height * 1.15;
+    float toOffset = state.atlas->getHeight() * 1.15;
     bool isSearchMode = state.mode == 2 || state.mode == 6 || state.mode == 7 ||
                         state.mode == 32;
-    cursor->setBounds(HEIGHT - state.atlas->atlas_height - 6, toOffset);
+    cursor->setBounds(HEIGHT - state.atlas->getHeight() - 6, toOffset);
     if (maxRenderWidth != 0) {
       cursor->getContent(state.atlas.get(), maxRenderWidth, true);
     }
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
     text->use();
     text->set("resolution", WIDTH, HEIGHT);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
+    glBindTexture(GL_TEXTURE_2D, state.atlas->getTexture());
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
     std::vector<RenderChar> entries;
     std::u16string::const_iterator c;

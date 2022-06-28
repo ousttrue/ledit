@@ -1,6 +1,8 @@
 #include "cursor.h"
 #include "font_atlas.h"
 #include "u8String.h"
+#include "utils.h"
+#include <iostream>
 #include <sstream>
 #include <fstream>
 

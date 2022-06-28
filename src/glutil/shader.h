@@ -6,27 +6,6 @@
 #include <iostream>
 #include <vector>
 
-struct CharacterEntry {
-  float width;
-  float height;
-  float top;
-  float left;
-  float advance;
-  float offset;
-  uint8_t *data = nullptr;
-  int xPos;
-  char16_t c;
-};
-
-struct RenderChar {
-  Vec2f pos;
-  Vec2f size;
-  Vec2f uv_pos;
-  Vec2f uv_size;
-  Vec4f fg_color;
-  Vec4f bg_color;
-};
-
 struct SelectionEntry {
   Vec2f pos;
   Vec2f size;
