@@ -32,7 +32,8 @@ add_executable(
   src/languages.cc
   src/utils.cpp
   src/glfwapp.cpp
-  src/cursor.cpp)
+  src/cursor.cpp
+  src/font_atlas.cpp)
 add_subdirectory(third-party/glfw)
 add_subdirectory(third-party/freetype2)
 

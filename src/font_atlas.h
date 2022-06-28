@@ -22,36 +22,32 @@ public:
   bool wasGenerated = false;
   FT_Face face;
   int xOffset = 0;
-  RenderChar render(char16_t c, float x = 0.0, float y = 0.0, Vec4f color = vec4fs(1)) {
-    if(c >= 128)
+
+  FontAtlas(const std::string &path, uint32_t fontSize);
+
+  RenderChar render(char16_t c, float x = 0.0, float y = 0.0,
+                    Vec4f color = vec4fs(1)) {
+    if (c >= 128)
       lazyLoad(c);
 
-    auto* entry = &entries[c];
+    auto *entry = &entries[c];
     RenderChar r;
     float x2 = x + entry->left;
     float y2 = y - entry->top + (atlas_height);
     r.pos = vec2f(x2, -y2);
     r.size = vec2f(entry->width, -entry->height);
     r.uv_pos = vec2f(entry->offset, 0.0f);
-    r.uv_size = vec2f(entry->width / (float) atlas_width, entry->height / atlas_height);
+    r.uv_size =
+        vec2f(entry->width / (float)atlas_width, entry->height / atlas_height);
     r.fg_color = color;
     return r;
   }
-  float getAdvance(char16_t c) {
-    return entries[c].advance;
-  }
-  FontAtlas(std::string path, uint32_t fontSize) {
-    if (FT_Init_FreeType(&ft)) {
-        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
-        return;
-    }
-    readFont(path, fontSize);
-  }
+  float getAdvance(char16_t c) { return entries[c].advance; }
   void readFont(std::string path, uint32_t fontSize) {
-    if(wasGenerated) {
-       FT_Done_Face(face);
+    if (wasGenerated) {
+      FT_Done_Face(face);
     }
-    int x = FT_New_Face(ft,  path.c_str(), 0, &face);
+    int x = FT_New_Face(ft, path.c_str(), 0, &face);
     if (x) {
       std::cout << "ERROR::FREETYPE: Failed to load font " << x << std::endl;
       return;
@@ -59,11 +55,12 @@ public:
     renderFont(fontSize);
   }
   void renderFont(uint32_t fontSize) {
-   if(wasGenerated) {
+    if (wasGenerated) {
       glDeleteTextures(1, &texture_id);
-    for(std::map<char16_t, CharacterEntry>::iterator it = entries.begin(); it != entries.end(); ++it) {
-      delete[] it->second.data;
-    }
+      for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
+           it != entries.end(); ++it) {
+        delete[] it->second.data;
+      }
       entries.clear();
       linesCache.clear();
     }
@@ -74,15 +71,14 @@ public:
     FT_Set_Pixel_Sizes(face, 0, fontSize);
     // TODO should this be here?
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    for(int i = 0; i < 128; i++) {
+    for (int i = 0; i < 128; i++) {
       if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
-        std::cout << "Failed to load char: " << (char) i << "\n";
+        std::cout << "Failed to load char: " << (char)i << "\n";
         return;
       }
       auto bm = face->glyph->bitmap;
       atlas_width += bm.width;
       atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
-
     }
     atlas_width *= 2;
 
@@ -91,7 +87,7 @@ public:
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);
 
-    //params
+    // params
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -99,11 +95,12 @@ public:
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei) atlas_width, (GLsizei) atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-     xOffset = 0;
-    for(int i = 0; i < 128; i++) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei)atlas_width,
+                 (GLsizei)atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    xOffset = 0;
+    for (int i = 0; i < 128; i++) {
       if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
-        std::cout << "Failed to load char: " << (char) i << "\n";
+        std::cout << "Failed to load char: " << (char)i << "\n";
         return;
       }
 
@@ -117,37 +114,30 @@ public:
       entry.xPos = xOffset;
       entry.c = (char16_t)i;
       (&entry)->data = new uint8_t[(int)entry.width * (int)entry.height];
-      memcpy(entry.data, face->glyph->bitmap.buffer, entry.width * entry.height);
-      if(smallest_top == 0 && entry.top > 0)
+      memcpy(entry.data, face->glyph->bitmap.buffer,
+             entry.width * entry.height);
+      if (smallest_top == 0 && entry.top > 0)
         smallest_top = entry.top;
       else
-        smallest_top = entry.top < smallest_top && entry.top != 0 ? entry.top : smallest_top;
+        smallest_top = entry.top < smallest_top && entry.top != 0
+                           ? entry.top
+                           : smallest_top;
       entries.insert(std::pair<char16_t, CharacterEntry>(entry.c, entry));
 
-
-      entries[(char16_t)i].offset = (float) xOffset / (float) atlas_width;
+      entries[(char16_t)i].offset = (float)xOffset / (float)atlas_width;
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      glTexSubImage2D(
-                      GL_TEXTURE_2D,
-                      0,
-                      xOffset,
-                      0,
-                      entry.width,
-                      entry.height,
-                      GL_RED,
-                      GL_UNSIGNED_BYTE,
-                      face->glyph->bitmap.buffer);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, entry.width, entry.height,
+                      GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
 
       xOffset += entry.width;
-
-   }
-   wasGenerated = true;
+    }
+    wasGenerated = true;
   }
   void lazyLoad(char16_t c) {
-    if(entries.count(c))
+    if (entries.count(c))
       return;
     if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-      std::cout << "Failed to load char: " << (char) c << "\n";
+      std::cout << "Failed to load char: " << (char)c << "\n";
       return;
     }
     CharacterEntry entry;
@@ -162,50 +152,36 @@ public:
     auto old_height = atlas_height;
     atlas_width += bm.width;
     atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
-    entry.offset = (float) xOffset / (float) atlas_width;
+    entry.offset = (float)xOffset / (float)atlas_width;
     GLuint new_tex_id;
     glGenTextures(1, &new_tex_id);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, new_tex_id);
-    //params
+    // params
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei) atlas_width , (GLsizei) atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-//   glCopyImageSubData(texture_id, GL_TEXTURE_2D, 0, 0, 0, 0, new_tex_id, GL_TEXTURE_2D, 0, 0, 0, 0, old_width, old_height, 0);
-//   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0,0,0,0, old_width, old_height);
-//   xOffset = 0;
-    for(std::map<char16_t, CharacterEntry>::iterator it = entries.begin(); it != entries.end(); ++it) {
-      it->second.offset = (float) it->second.xPos / (float)atlas_width;
-      glTexSubImage2D(
-                     GL_TEXTURE_2D,
-                    0,
-                    it->second.xPos,
-                    0,
-                    it->second.width,
-                    it->second.height,
-                    GL_RED,
-                    GL_UNSIGNED_BYTE,
-                    it->second.data);
-
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei)atlas_width,
+                 (GLsizei)atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    //   glCopyImageSubData(texture_id, GL_TEXTURE_2D, 0, 0, 0, 0, new_tex_id,
+    //   GL_TEXTURE_2D, 0, 0, 0, 0, old_width, old_height, 0);
+    //   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0,0,0,0, old_width, old_height);
+    //   xOffset = 0;
+    for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
+         it != entries.end(); ++it) {
+      it->second.offset = (float)it->second.xPos / (float)atlas_width;
+      glTexSubImage2D(GL_TEXTURE_2D, 0, it->second.xPos, 0, it->second.width,
+                      it->second.height, GL_RED, GL_UNSIGNED_BYTE,
+                      it->second.data);
     }
 
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexSubImage2D(
-                    GL_TEXTURE_2D,
-                    0,
-                    xOffset,
-                    0,
-                    entry.width,
-                    entry.height,
-                    GL_RED,
-                    GL_UNSIGNED_BYTE,
-                    face->glyph->bitmap.buffer);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, entry.width, entry.height,
+                    GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
     glDeleteTextures(1, &texture_id);
     texture_id = new_tex_id;
     entry.c = (char16_t)c;
@@ -218,7 +194,7 @@ public:
     float v = 0;
     std::u16string::const_iterator c;
     for (c = line.begin(); c != line.end(); c++) {
-      if(*c >= 128)
+      if (*c >= 128)
         lazyLoad(*c);
       v += entries[*c].advance;
     }
@@ -228,22 +204,22 @@ public:
     float v = 0;
     std::string::const_iterator c;
     for (c = line.begin(); c != line.end(); c++) {
-      char16_t cc = (char16_t) (*c);
+      char16_t cc = (char16_t)(*c);
       v += entries[cc].advance;
     }
     return v;
   }
 
-  std::vector<float>* getAllAdvance(std::u16string line, int y) {
+  std::vector<float> *getAllAdvance(std::u16string line, int y) {
     if (linesCache.count(y)) {
-      if(contentCache[y] == line) {
+      if (contentCache[y] == line) {
         return &linesCache[y];
       }
     }
     std::vector<float> values;
     std::u16string::const_iterator c;
     for (c = line.begin(); c != line.end(); c++) {
-      if(*c >= 128)
+      if (*c >= 128)
         lazyLoad(*c);
 
       values.push_back(entries[*c].advance);
@@ -252,7 +228,6 @@ public:
     contentCache[y] = line;
     return &linesCache[y];
   }
-
 };
 
 #endif
