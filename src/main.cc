@@ -2,6 +2,11 @@
 #define kIOMainPortDefault kIOMasterPortDefault
 #endif
 
+#include "state.h"
+#include "cursor.h"
+#include "shaders.h"
+#include "font_atlas.h"
+#include "drawable.h"
 #include "glfwapp.h"
 #include "shader.h"
 #ifndef __APPLE__
@@ -10,11 +15,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-#include "state.h"
-#include "cursor.h"
-#include "shaders.h"
-#include "font_atlas.h"
-#include "drawable.h"
+#include <memory>
 
 VertexLayout textVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
@@ -29,7 +30,6 @@ VertexLayout selVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(SelectionEntry, pos), 1},
     {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
 };
-
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -57,13 +57,14 @@ int main(int argc, char **argv) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   state.init();
 
-  Drawable text(text_shader_vert, text_shader_frag, {}, sizeof(RenderChar),
-                textVertexLayout, _countof(textVertexLayout),
-                sizeof(RenderChar) * 600 * 1000);
+  auto text = std::shared_ptr<Drawable>(new Drawable(text_shader_vert, text_shader_frag, {},
+                                         sizeof(RenderChar), textVertexLayout,
+                                         _countof(textVertexLayout),
+                                         sizeof(RenderChar) * 600 * 1000));
 
-  Drawable selection(selection_shader_vert, selection_shader_frag, {},
-                     sizeof(SelectionEntry), selVertexLayout,
-                     _countof(selVertexLayout), sizeof(SelectionEntry) * 16);
+  auto selection = std::shared_ptr<Drawable>(new Drawable(
+      selection_shader_vert, selection_shader_frag, {}, sizeof(SelectionEntry),
+      selVertexLayout, _countof(selVertexLayout), sizeof(SelectionEntry) * 16));
 
   Shader cursor_shader(cursor_shader_vert, cursor_shader_frag,
                        {camera_shader_vert});
@@ -107,19 +108,19 @@ int main(int argc, char **argv) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (state.highlightLine) {
-      selection.use();
+      selection->use();
       auto color = state.provider.colors.highlight_color;
-      selection.set("selection_color", color);
-      selection.set("resolution", Vec2f(WIDTH, HEIGHT));
+      selection->set("selection_color", color);
+      selection->set("resolution", Vec2f(WIDTH, HEIGHT));
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
                                      ((cursor->y - cursor->skip) * toOffset)),
                            vec2f((((int32_t)WIDTH / 2) * 2) - 20, toOffset)};
-      selection.drawUploadInstance(&entry, sizeof(SelectionEntry), 6, 1);
+      selection->drawUploadInstance(&entry, sizeof(SelectionEntry), 6, 1);
     }
 
-    text.use();
-    text.set("resolution", Vec2f(WIDTH, HEIGHT));
+    text->use();
+    text->set("resolution", Vec2f(WIDTH, HEIGHT));
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state.atlas->texture_id);
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
@@ -287,7 +288,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    text.drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(), 6,
+    text->drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(), 6,
                             (GLsizei)entries.size());
 
     if (state.focused) {
@@ -301,7 +302,7 @@ int main(int argc, char **argv) {
                         5 + statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        text.drawTriangleStrip(4);
+        text->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
 
@@ -315,7 +316,7 @@ int main(int argc, char **argv) {
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
                         (toOffset * ((cursor->y - cursor->skip) + 1));
         cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
-        text.drawTriangleStrip(4);
+        text->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
     }
@@ -455,12 +456,12 @@ int main(int argc, char **argv) {
         }
       }
       if (selectionBoundaries.size()) {
-        selection.use();
+        selection->use();
         auto color = state.provider.colors.selection_color;
-        selection.set("selection_color", color);
-        selection.set("resolution", Vec2f(WIDTH, HEIGHT));
+        selection->set("selection_color", color);
+        selection->set("resolution", Vec2f(WIDTH, HEIGHT));
 
-        selection.drawUploadInstance(&selectionBoundaries[0],
+        selection->drawUploadInstance(&selectionBoundaries[0],
                                      sizeof(SelectionEntry) *
                                          selectionBoundaries.size(),
                                      6, (GLsizei)selectionBoundaries.size());
