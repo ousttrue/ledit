@@ -24,18 +24,17 @@ struct VertexLayout {
 };
 
 VertexLayout textVertexLayout[] = {
-    // pos
     {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
-    // size
     {GL_FLOAT, 2, offsetof(RenderChar, size), 1},
-    // uv_pos
     {GL_FLOAT, 2, offsetof(RenderChar, uv_pos), 1},
-    // uv_size
     {GL_FLOAT, 2, offsetof(RenderChar, uv_size), 1},
-    // fg_color
     {GL_FLOAT, 4, offsetof(RenderChar, fg_color), 1},
-    // bg_color
     {GL_FLOAT, 4, offsetof(RenderChar, bg_color), 1},
+};
+
+VertexLayout selVertexLayout[] = {
+    {GL_FLOAT, 2, offsetof(SelectionEntry, pos), 1},
+    {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
 };
 
 class Drawable {
@@ -53,7 +52,7 @@ public:
       : shader(vertex, fragment, others) {
 
     vbo.dynamicData(dataSize);
-  
+
     vao.bind();
     vbo.bind();
     for (size_t i = 0; i < len; ++i, ++layouts) {
@@ -97,49 +96,12 @@ int main(int argc, char **argv) {
                 textVertexLayout, _countof(textVertexLayout),
                 sizeof(RenderChar) * 600 * 1000);
 
-  VBO sel_vbo;
-  VAO sel_vao;
-  VBO highlight_vbo;
-  VAO highlight_vao;
-  {
-    // selection buffer;
-    sel_vbo.dynamicData(sizeof(SelectionEntry) * 16);
-
-    // vao
-    sel_vao.bind();
-    sel_vbo.bind();
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                          (void *)offsetof(SelectionEntry, pos));
-    glVertexAttribDivisor(0, 1);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                          (void *)offsetof(SelectionEntry, size));
-    glVertexAttribDivisor(1, 1);
-    sel_vao.unbind();
-    sel_vbo.unbind();
-  }
-
-  {
-    highlight_vbo.dynamicData(sizeof(SelectionEntry));
-
-    highlight_vao.bind();
-    highlight_vbo.bind();
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                          (void *)offsetof(SelectionEntry, pos));
-    glVertexAttribDivisor(0, 1);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(SelectionEntry),
-                          (void *)offsetof(SelectionEntry, size));
-    glVertexAttribDivisor(1, 1);
-    highlight_vao.unbind();
-    highlight_vbo.unbind();
-  }
+  Drawable selection(selection_shader_vert, selection_shader_frag, {},
+               sizeof(SelectionEntry), selVertexLayout,
+               _countof(selVertexLayout), sizeof(SelectionEntry) * 16);
 
   Shader cursor_shader(cursor_shader_vert, cursor_shader_frag,
                        {camera_shader_vert});
-  Shader selection_shader(selection_shader_vert, selection_shader_frag, {});
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
   state.WIDTH *= xscale;
@@ -179,17 +141,17 @@ int main(int argc, char **argv) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (state.highlightLine) {
-      selection_shader.use();
+      selection.shader.use();
       auto color = state.provider.colors.highlight_color;
-      selection_shader.set4f("selection_color", color.x, color.y, color.z,
+      selection.shader.set4f("selection_color", color.x, color.y, color.z,
                              color.w);
-      selection_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+      selection.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
                                      ((cursor->y - cursor->skip) * toOffset)),
                            vec2f((((int32_t)WIDTH / 2) * 2) - 20, toOffset)};
-      highlight_vbo.upload(&entry, sizeof(SelectionEntry));
-      highlight_vao.drawTriangleStripInstance(6, 1);
+      selection.vbo.upload(&entry, sizeof(SelectionEntry));
+      selection.vao.drawTriangleStripInstance(6, 1);
     }
 
     text.shader.use();
@@ -529,15 +491,15 @@ int main(int argc, char **argv) {
         }
       }
       if (selectionBoundaries.size()) {
-        selection_shader.use();
+        selection.shader.use();
         auto color = state.provider.colors.selection_color;
-        selection_shader.set4f("selection_color", color.x, color.y, color.z,
+        selection.shader.set4f("selection_color", color.x, color.y, color.z,
                                color.w);
-        selection_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+        selection.shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
 
-        sel_vbo.upload(&selectionBoundaries[0],
+        selection.vbo.upload(&selectionBoundaries[0],
                        sizeof(SelectionEntry) * selectionBoundaries.size());
-        sel_vao.drawTriangleStripInstance(6,
+        selection.vao.drawTriangleStripInstance(6,
                                           (GLsizei)selectionBoundaries.size());
       }
     }
