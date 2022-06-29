@@ -32,7 +32,7 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
     glfwGetCursorPos(window, &xpos, &ypos);
     float xscale, yscale;
     glfwGetWindowContentScale(window, &xscale, &yscale);
-    gState->cursor->setPosFromMouse((float)xpos * xscale, (float)ypos * yscale,
+    gState->active->setPosFromMouse((float)xpos * xscale, (float)ypos * yscale,
                                     gState->atlas.get());
   }
 }
@@ -49,7 +49,7 @@ void character_callback(GLFWwindow *window, unsigned int codepoint) {
   bool alt_pressed = glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS;
   if (alt_pressed) {
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-      gState->cursor->advanceWord();
+      gState->active->advanceWord();
       return;
     }
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -57,15 +57,15 @@ void character_callback(GLFWwindow *window, unsigned int codepoint) {
       return;
     }
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
-      gState->cursor->advanceWordBackwards();
+      gState->active->advanceWordBackwards();
       return;
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-      gState->cursor->deleteWord();
+      gState->active->deleteWord();
       return;
     }
   }
-  gState->cursor->append((char16_t)codepoint);
+  gState->active->append((char16_t)codepoint);
   gState->renderCoords();
 }
 
@@ -75,14 +75,14 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
   gState->invalidateCache();
   if (key == GLFW_KEY_ESCAPE) {
     if (action == GLFW_PRESS) {
-      if (gState->cursor->selection.active) {
-        gState->cursor->selection.stop();
+      if (gState->active->selection.active) {
+        gState->active->selection.stop();
         return;
       }
       if (gState->mode != 0) {
         gState->inform(false, false);
       } else {
-        CursorEntry *edited = gState->hasEditedBuffer();
+        auto edited = gState->hasEditedBuffer();
         if (gState->exitFlag || edited == nullptr) {
           glfwSetWindowShouldClose(window, true);
         } else {
@@ -102,12 +102,12 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
   bool shift_pressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
   bool x_pressed = glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS;
   bool alt_pressed = glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS;
-  Cursor *cursor = gState->cursor;
+  auto cursor = gState->active;
   bool isPress = action == GLFW_PRESS || action == GLFW_REPEAT;
 #ifdef __linux__
   if (alt_pressed) {
     if (key == GLFW_KEY_F && isPress) {
-      gState->cursor->advanceWord();
+      gState->active->advanceWord();
       return;
     }
     if (key == GLFW_KEY_W && action == GLFW_PRESS) {
@@ -115,11 +115,11 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
       return;
     }
     if (key == GLFW_KEY_B && isPress) {
-      gState->cursor->advanceWordBackwards();
+      gState->active->advanceWordBackwards();
       return;
     }
     if (key == GLFW_KEY_D && isPress) {
-      gState->cursor->deleteWord();
+      gState->active->deleteWord();
       return;
     }
   }
@@ -172,9 +172,9 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
     }
     if (shift_pressed) {
       if (key == GLFW_KEY_P && isPress) {
-        gState->cursor->moveLine(-1);
+        gState->active->moveLine(-1);
       } else if (key == GLFW_KEY_N && isPress) {
-        gState->cursor->moveLine(1);
+        gState->active->moveLine(1);
       }
       gState->renderCoords();
       return;

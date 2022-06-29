@@ -21,12 +21,12 @@ void State::focus(bool focused) {
   }
 }
 
-CursorEntry *State::hasEditedBuffer() {
-  for (CursorEntry *cur : cursors) {
-    if (cur->cursor.edited)
-      return cur;
+std::shared_ptr<Cursor> State::hasEditedBuffer() const {
+  for (auto &cursor : cursors) {
+    if (active->edited)
+      return cursor;
   }
-  return nullptr;
+  return {};
 }
 
 void State::startReplace() {
@@ -35,25 +35,25 @@ void State::startReplace() {
   mode = 30;
   status = u"Search: ";
   miniBuf = replaceBuffer.search;
-  cursor->bindTo(&miniBuf);
+  active->bindTo(&miniBuf);
 }
 
 void State::tryComment() {
   if (!hasHighlighting)
     return;
-  cursor->comment(highlighter.language.singleLineComment);
+  active->comment(highlighter.language.singleLineComment);
 }
 
 void State::checkChanged() {
   if (!path.length())
     return;
-  cursor->branch = provider.getBranchName(path);
-  auto changed = cursor->didChange(path);
+  active->branch = provider.getBranchName(path);
+  auto changed = active->didChange(path);
   if (changed) {
     miniBuf = u"";
     mode = 36;
     status = u"[" + create(path) + u"]: Changed on disk, reload?";
-    cursor->bindTo(&dummyBuf);
+    active->bindTo(&dummyBuf);
   }
 }
 
@@ -63,7 +63,7 @@ void State::switchMode() {
   round = 0;
   miniBuf = u"Text";
   status = u"Mode: ";
-  cursor->bindTo(&dummyBuf);
+  active->bindTo(&dummyBuf);
   mode = 25;
 }
 
@@ -88,10 +88,10 @@ void State::increaseFontSize(int value) {
 void State::toggleSelection() {
   if (mode != 0)
     return;
-  if (cursor->selection.active)
-    cursor->selection.stop();
+  if (active->selection.active)
+    active->selection.stop();
   else
-    cursor->selection.activate(cursor->x, cursor->y);
+    active->selection.activate(active->x, active->y);
   renderCoords();
 }
 
@@ -105,7 +105,7 @@ void State::switchBuffer() {
     }
     round = 0;
     miniBuf = create(cursors[0]->path);
-    cursor->bindTo(&miniBuf);
+    active->bindTo(&miniBuf);
     mode = 5;
     status = u"Switch to: ";
   } else {
@@ -120,36 +120,36 @@ void State::tryPaste() {
   const char *contents = glfwGetClipboardString(NULL);
   if (contents) {
     std::u16string str = create(std::string(contents));
-    cursor->appendWithLines(str);
+    active->appendWithLines(str);
     if (mode != 0)
       return;
     if (hasHighlighting)
-      highlighter.highlight(cursor->lines, &provider.colors, cursor->skip,
-                            cursor->maxLines, cursor->y);
+      highlighter.highlight(active->lines, &provider.colors, active->skip,
+                            active->maxLines, active->y);
     status = u"Pasted " + numberToString(str.length()) + u" Characters";
   }
 }
 
 void State::cut() {
-  if (!cursor->selection.active) {
+  if (!active->selection.active) {
     status = u"Aborted: No selection";
     return;
   }
-  std::string content = cursor->getSelection();
+  std::string content = active->getSelection();
   glfwSetClipboardString(NULL, content.c_str());
-  cursor->deleteSelection();
-  cursor->selection.stop();
+  active->deleteSelection();
+  active->selection.stop();
   status = u"Cut " + numberToString(content.length()) + u" Characters";
 }
 
 void State::tryCopy() {
-  if (!cursor->selection.active) {
+  if (!active->selection.active) {
     status = u"Aborted: No selection";
     return;
   }
-  std::string content = cursor->getSelection();
+  std::string content = active->getSelection();
   glfwSetClipboardString(NULL, content.c_str());
-  cursor->selection.stop();
+  active->selection.stop();
   status = u"Copied " + numberToString(content.length()) + u" Characters";
 }
 
@@ -160,7 +160,7 @@ void State::save() {
     saveNew();
     return;
   }
-  cursor->saveTo(path);
+  active->saveTo(path);
   status = u"Saved: " + create(path);
 }
 
@@ -168,7 +168,7 @@ void State::saveNew() {
   if (mode != 0)
     return;
   miniBuf = u"";
-  cursor->bindTo(&miniBuf);
+  active->bindTo(&miniBuf);
   mode = 1;
   status = u"Save to[" + create(provider.getCwdFormatted()) + u"]: ";
 }
@@ -177,7 +177,7 @@ void State::changeFont() {
   if (mode != 0)
     return;
   miniBuf = create(provider.fontPath);
-  cursor->bindTo(&miniBuf);
+  active->bindTo(&miniBuf);
   mode = 15;
   status = u"Set font: ";
 }
@@ -187,19 +187,19 @@ void State::open() {
     return;
   miniBuf = u"";
   provider.lastProvidedFolder = "";
-  cursor->bindTo(&miniBuf);
+  active->bindTo(&miniBuf);
   mode = 4;
   status = u"Open [" + create(provider.getCwdFormatted()) + u"]: ";
 }
 
 void State::reHighlight() {
   if (hasHighlighting)
-    highlighter.highlight(cursor->lines, &provider.colors, cursor->skip,
-                          cursor->maxLines, cursor->y);
+    highlighter.highlight(active->lines, &provider.colors, active->skip,
+                          active->maxLines, active->y);
 }
 
 void State::undo() {
-  bool result = cursor->undo();
+  bool result = active->undo();
   status = result ? u"Undo" : u"Undo failed";
   if (result)
     reHighlight();
@@ -209,20 +209,20 @@ void State::search() {
   if (mode != 0)
     return;
   miniBuf = u"";
-  cursor->bindTo(&miniBuf, true);
+  active->bindTo(&miniBuf, true);
   mode = 2;
   status = u"Search: ";
 }
 
 void State::tryEnableHighlighting() {
-  std::vector<std::u16string> fileParts = cursor->split(fileName, u".");
+  std::vector<std::u16string> fileParts = active->split(fileName, u".");
   std::string ext = convert_str(fileParts[fileParts.size() - 1]);
   const Language *lang =
       has_language(fileName == u"Dockerfile" ? "dockerfile" : ext);
   if (lang) {
     highlighter.setLanguage(*lang, lang->modeName);
-    highlighter.highlight(cursor->lines, &provider.colors, cursor->skip,
-                          cursor->maxLines, cursor->y);
+    highlighter.highlight(active->lines, &provider.colors, active->skip,
+                          active->maxLines, active->y);
     hasHighlighting = true;
   } else {
     hasHighlighting = false;
@@ -232,13 +232,13 @@ void State::tryEnableHighlighting() {
 void State::inform(bool success, bool shift_pressed) {
   if (success) {
     if (mode == 1) { // save to
-      bool result = cursor->saveTo(convert_str(miniBuf));
+      bool result = active->saveTo(convert_str(miniBuf));
       if (result) {
         status = u"Saved to: " + miniBuf;
         if (!path.length()) {
           path = convert_str(miniBuf);
-          cursors[activeIndex]->path = path;
-          auto split = cursor->split(path, "/");
+          active->path = path;
+          auto split = active->split(path, "/");
           std::string fName = split[split.size() - 1];
           fileName = create(fName);
           std::string window_name = "ledit: " + path;
@@ -249,7 +249,7 @@ void State::inform(bool success, bool shift_pressed) {
         status = u"Failed to save to: " + miniBuf;
       }
     } else if (mode == 2 || mode == 7) { // search
-      status = cursor->search(miniBuf, false, mode != 7);
+      status = active->search(miniBuf, false, mode != 7);
       if (mode == 7)
         mode = 2;
       // hacky shit
@@ -257,7 +257,7 @@ void State::inform(bool success, bool shift_pressed) {
         mode = 6;
       return;
     } else if (mode == 6) { // search
-      status = cursor->search(miniBuf, true);
+      status = active->search(miniBuf, true);
       if (status == u"[No further matches]: ") {
         mode = 7;
       }
@@ -265,15 +265,15 @@ void State::inform(bool success, bool shift_pressed) {
     } else if (mode == 3) { // gotoline
       auto line_str = convert_str(miniBuf);
       if (isSafeNumber(line_str)) {
-        cursor->gotoLine(std::stoi(line_str));
+        active->gotoLine(std::stoi(line_str));
         status = u"Jump to: " + miniBuf;
       } else {
         status = u"Invalid line: " + miniBuf;
       }
     } else if (mode == 4 || mode == 5) {
-      cursor->unbind();
+      active->unbind();
       if (mode == 5) {
-        if (round != activeIndex) {
+        if (round != getActiveIndex()) {
           activateCursor(round);
           status = u"Switched to: " + create(path.length() ? path : "New File");
         } else {
@@ -290,7 +290,7 @@ void State::inform(bool success, bool shift_pressed) {
             break;
           }
         }
-        if (found && activeIndex != fIndex)
+        if (found && getActiveIndex() != fIndex)
           activateCursor(fIndex);
         else if (!found)
           addCursor(converted);
@@ -314,8 +314,8 @@ void State::inform(bool success, bool shift_pressed) {
     } else if (mode == 30) {
       replaceBuffer.search = miniBuf;
       miniBuf = replaceBuffer.replace;
-      cursor->unbind();
-      cursor->bindTo(&miniBuf);
+      active->unbind();
+      active->bindTo(&miniBuf);
       status = u"Replace: ";
       mode = 31;
       return;
@@ -323,32 +323,32 @@ void State::inform(bool success, bool shift_pressed) {
       mode = 32;
       replaceBuffer.replace = miniBuf;
       status = replaceBuffer.search + u" => " + replaceBuffer.replace;
-      cursor->unbind();
+      active->unbind();
       return;
     } else if (mode == 32) {
       if (shift_pressed) {
         auto count =
-            cursor->replaceAll(replaceBuffer.search, replaceBuffer.replace);
+            active->replaceAll(replaceBuffer.search, replaceBuffer.replace);
         if (count)
           status = u"Replaced " + numberToString(count) + u" matches";
         else
           status = u"[No match]: " + replaceBuffer.search + u" => " +
                    replaceBuffer.replace;
       } else {
-        auto result = cursor->replaceOne(replaceBuffer.search,
+        auto result = active->replaceOne(replaceBuffer.search,
                                          replaceBuffer.replace, true);
         status =
             result + replaceBuffer.search + u" => " + replaceBuffer.replace;
         return;
       }
     } else if (mode == 36) {
-      cursor->reloadFile(path);
+      active->reloadFile(path);
       status = u"Reloaded";
     }
   } else {
     status = u"Aborted";
   }
-  cursor->unbind();
+  active->unbind();
   mode = 0;
 }
 
@@ -385,34 +385,34 @@ void State::renderCoords() {
   if (mode != 0)
     return;
   // if(hasHighlighting)
-  // highlighter.highlight(cursor->lines, &provider.colors, cursor->skip,
-  // cursor->maxLines, cursor->y);
+  // highlighter.highlight(active->lines, &provider.colors, active->skip,
+  // active->maxLines, active->y);
   std::u16string branch;
-  if (cursor->branch.length()) {
-    branch = u" [git: " + create(cursor->branch) + u"]";
+  if (active->branch.length()) {
+    branch = u" [git: " + create(active->branch) + u"]";
   }
-  status = numberToString(cursor->y + 1) + u":" +
-           numberToString(cursor->x + 1) + branch + u" [" + fileName + u": " +
+  status = numberToString(active->y + 1) + u":" +
+           numberToString(active->x + 1) + branch + u" [" + fileName + u": " +
            (hasHighlighting ? highlighter.languageName : u"Text") +
-           u"] History Size: " + numberToString(cursor->history.size());
-  if (cursor->selection.active)
+           u"] History Size: " + numberToString(active->history.size());
+  if (active->selection.active)
     status +=
-        u" Selected: [" + numberToString(cursor->getSelectionSize()) + u"]";
+        u" Selected: [" + numberToString(active->getSelectionSize()) + u"]";
 }
 
 void State::gotoLine() {
   if (mode != 0)
     return;
   miniBuf = u"";
-  cursor->bindTo(&miniBuf);
+  active->bindTo(&miniBuf);
   mode = 3;
   status = u"Line: ";
 }
 
 std::u16string State::getTabInfo() {
-  if (activeIndex == 0 && cursors.size() == 1)
+  if (getActiveIndex() == 0 && cursors.size() == 1)
     return u"[ 1 ]";
-  std::u16string text = u"[ " + numberToString(activeIndex + 1) + u":" +
+  std::u16string text = u"[ " + numberToString(getActiveIndex() + 1) + u":" +
                         numberToString(cursors.size()) + u" ]";
 
   return text;
@@ -421,31 +421,33 @@ std::u16string State::getTabInfo() {
 void State::rotateBuffer() {
   if (cursors.size() == 1)
     return;
-  size_t next = activeIndex + 1;
+  size_t next = getActiveIndex() + 1;
   if (next == cursors.size())
     next = 0;
   activateCursor(next);
 }
 
-void State::deleteCursor(size_t index) {
-  if (mode != 0 || cursors.size() == 1 || index >= cursors.size())
-    return;
-  CursorEntry *entry = cursors[index];
-  delete entry;
+void State::deleteCursor(const std::shared_ptr<Cursor> &cursor) {
 
-  if (activeIndex != index)
-    return;
-  size_t targetIndex = index == 0 ? 1 : index - 1;
-  cursors.erase(cursors.begin() + index);
-  activateCursor(targetIndex);
+  size_t i = 0;
+  for (auto it = cursors.begin(); it != cursors.end(); ++it, ++i) {
+    if (*it == cursor) {
+      cursors.erase(it);
+      if (cursor == active) {
+        if (i + 1 < cursors.size()) {
+          activateCursor(i + 1);
+        } else {
+          activateCursor(0);
+        }
+        return;
+      }
+    }
+  }
 }
 
 void State::activateCursor(size_t cursorIndex) {
-  CursorEntry *entry = cursors[cursorIndex];
-  activeIndex = cursorIndex;
-  std::string path = entry->path;
-  this->cursor = &(entry->cursor);
-  this->path = path;
+  active = cursors[cursorIndex];
+  this->path = active->path;
   status = create(path);
   if (path.length()) {
     if (path == "-") {
@@ -453,7 +455,7 @@ void State::activateCursor(size_t cursorIndex) {
       hasHighlighting = false;
       renderCoords();
     } else {
-      auto split = entry->cursor.split(path, "/");
+      auto split = active->split(path, "/");
       fileName = create(split[split.size() - 1]);
       tryEnableHighlighting();
       checkChanged();
@@ -468,15 +470,15 @@ void State::activateCursor(size_t cursorIndex) {
 }
 
 void State::addCursor(std::string path) {
-  if (path.length() && std::filesystem::is_directory(path))
+  if (path.length() && std::filesystem::is_directory(path)) {
     path = "";
-
-  Cursor newCursor = path.length() ? Cursor(path) : Cursor();
-  if (path.length()) {
-    newCursor.branch = provider.getBranchName(path);
   }
-  CursorEntry *entry = new CursorEntry{newCursor, path};
-  cursors.push_back(entry);
+
+  auto newCursor = path.length() ? std::make_shared<Cursor>(path) : std::make_shared<Cursor>();
+  if (path.length()) {
+    newCursor->branch = provider.getBranchName(path);
+  }
+  cursors.push_back(newCursor);
   activateCursor(cursors.size() - 1);
 }
 

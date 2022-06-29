@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
       changed = true;
     }
 
-    Cursor *cursor = state.cursor;
+    auto cursor = state.active;
     float toOffset = state.atlas->getHeight() * 1.15;
     bool isSearchMode = state.mode == 2 || state.mode == 6 || state.mode == 7 ||
                         state.mode == 32;

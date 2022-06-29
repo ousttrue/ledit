@@ -7,6 +7,7 @@
 #include <fstream>
 
 Cursor::Cursor(std::string path) {
+  this->path=path;
   if (path == "-") {
     std::string line;
     while (std::getline(std::cin, line)) {

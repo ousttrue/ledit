@@ -30,6 +30,7 @@ struct CommentEntry {
 
 class Cursor {
 public:
+  std::string path;
   bool edited = false;
   bool streamMode = false;
   bool useXFallback;
@@ -115,9 +116,4 @@ public:
   void calcTotalOffset();
   int getTotalOffset();
   std::vector<std::string> getSaveLocKeys();
-};
-
-struct CursorEntry {
-  Cursor cursor;
-  std::string path;
 };

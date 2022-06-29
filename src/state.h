@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "highlighting.h"
 #include "providers.h"
+#include "cursor.h"
 
 struct ReplaceBuffer {
   std::u16string search = u"";
@@ -17,13 +18,11 @@ public:
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
-  class Cursor *cursor;
-  std::vector<class CursorEntry *> cursors;
-  size_t activeIndex;
+  std::shared_ptr<Cursor> active;
+  std::vector<std::shared_ptr<Cursor>> cursors;
   Highlighter highlighter;
   Provider provider;
   std::shared_ptr<class FontAtlas> atlas;
-  // class GLFWwindow *window;
   ReplaceBuffer replaceBuffer;
   float WIDTH, HEIGHT;
   bool hasHighlighting;
@@ -40,7 +39,6 @@ public:
   int fontSize;
   State() {}
   State(float w, float h, int fontSize) {
-
     this->fontSize = fontSize;
     WIDTH = w;
     HEIGHT = h;
@@ -50,7 +48,7 @@ public:
   void focus(bool focused);
   void invalidateCache() { cacheValid = false; }
 
-  class CursorEntry *hasEditedBuffer();
+  std::shared_ptr<Cursor> hasEditedBuffer() const;
   void startReplace();
   void tryComment();
   void checkChanged();
@@ -75,9 +73,18 @@ public:
   void gotoLine();
   std::u16string getTabInfo();
 
-  void deleteActive() { deleteCursor(activeIndex); }
+  size_t getActiveIndex() const {
+    size_t i = 0;
+    for (; i < cursors.size(); ++i) {
+      if (cursors[i] == active) {
+        break;
+      }
+    }
+    return i;
+  }
+  void deleteActive() { deleteCursor(active); }
   void rotateBuffer();
-  void deleteCursor(size_t index);
+  void deleteCursor(const std::shared_ptr<Cursor> &cursor);
   void activateCursor(size_t cursorIndex);
   void addCursor(std::string path);
   void init();
