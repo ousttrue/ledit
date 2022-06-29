@@ -7,6 +7,7 @@
 #include "cursor.h"
 #include "font_atlas.h"
 #include "glfwapp.h"
+#include "glutil/gpu.h"
 #include "glutil/drawable.h"
 #include "glutil/shader.h"
 #include <memory>
@@ -37,7 +38,6 @@ VertexLayout selVertexLayout[] = {
     {2, offsetof(SelectionEntry, size), 1},
 };
 
-
 int main(int argc, char **argv) {
 #ifdef _WIN32
   ShowWindow(GetConsoleWindow(), SW_HIDE);
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (!gladLoadGLLoader((GLADloadproc)getProc)) {
+  if (!gpu::initialize(getProc)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     return 2;
   }
@@ -64,20 +64,15 @@ int main(int argc, char **argv) {
   state.addCursor(initialPath);
   // state.window = window;
 
-  // OpenGL state
-  // ------------
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   state.init();
 
-  auto text = std::shared_ptr<Drawable>(new Drawable(Shader::createText(),
-      sizeof(RenderChar), textVertexLayout, _countof(textVertexLayout),
-      sizeof(RenderChar) * 600 * 1000));
+  auto text = std::shared_ptr<Drawable>(new Drawable(
+      Shader::createText(), sizeof(RenderChar), textVertexLayout,
+      _countof(textVertexLayout), sizeof(RenderChar) * 600 * 1000));
 
-  auto selection = std::shared_ptr<Drawable>(new Drawable(Shader::createSelection(),
-      sizeof(SelectionEntry), selVertexLayout, _countof(selVertexLayout),
-      sizeof(SelectionEntry) * 16));
+  auto selection = std::shared_ptr<Drawable>(new Drawable(
+      Shader::createSelection(), sizeof(SelectionEntry), selVertexLayout,
+      _countof(selVertexLayout), sizeof(SelectionEntry) * 16));
 
   auto cursor_shader = Shader::createCursor();
 
@@ -116,8 +111,8 @@ int main(int argc, char **argv) {
 
     auto be_color = state.provider.colors.background_color;
     auto status_color = state.provider.colors.status_color;
-    glClearColor(be_color.x, be_color.y, be_color.z, be_color.w);
-    glClear(GL_COLOR_BUFFER_BIT);
+
+    gpu::clear(&be_color.x);
 
     if (state.highlightLine) {
       selection->use();
@@ -133,6 +128,7 @@ int main(int argc, char **argv) {
 
     text->use();
     text->set("resolution", WIDTH, HEIGHT);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, state.atlas->getTexture());
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);

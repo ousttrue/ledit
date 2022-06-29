@@ -27,6 +27,7 @@ add_executable(
   src/glutil/drawable.cpp
   src/glutil/texture.cpp
   src/glutil/shader.cpp
+  src/glutil/gpu.cpp
   src/la.cc
   src/main.cc
   src/state.cc
