@@ -1,6 +1,7 @@
 #include "font_atlas.h"
 #include "la.h"
 #include "glutil/shader.h"
+#include "glutil/texture.h"
 #include "base64.h"
 #include "utils.h"
 #include "../third-party/freetype2/include/ft2build.h"
@@ -26,7 +27,7 @@ struct FontAtlasImpl {
   FT_Library ft;
   FT_Face face;
   bool wasGenerated = false;
-  GLuint texture_id = 0;
+  std::shared_ptr<Texture> texture;
   std::map<char16_t, CharacterEntry> entries;
   std::map<int, std::vector<float>> linesCache;
   uint32_t fs;
@@ -57,7 +58,6 @@ struct FontAtlasImpl {
 public:
   void renderFont(uint32_t fontSize) {
     if (wasGenerated) {
-      glDeleteTextures(1, &texture_id);
       for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
            it != entries.end(); ++it) {
         delete[] it->second.data;
@@ -84,20 +84,8 @@ public:
     atlas_width *= 2;
 
     // texture
-    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &texture_id);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
+    texture = Texture::create(atlas_width, atlas_height);
 
-    // params
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei)atlas_width,
-                 (GLsizei)atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
     xOffset = 0;
     for (int i = 0; i < 128; i++) {
       if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
@@ -185,8 +173,6 @@ private:
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, entry.width, entry.height,
                     GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
-    glDeleteTextures(1, &texture_id);
-    texture_id = new_tex_id;
     entry.c = (char16_t)c;
     (&entry)->data = new uint8_t[(int)entry.width * (int)entry.height];
     memcpy(entry.data, face->glyph->bitmap.buffer, entry.width * entry.height);
@@ -277,7 +263,7 @@ std::vector<float> *FontAtlas::getAllAdvance(const std::u16string &line,
   return _impl->getAllAdvance(line, y);
 }
 float FontAtlas::getHeight() const { return _impl->atlas_height; }
-uint32_t FontAtlas::getTexture() const { return _impl->texture_id; }
+uint32_t FontAtlas::getTexture() const { return _impl->texture->getHandle(); }
 RenderChar FontAtlas::render(char16_t c, float x, float y, Vec4f color) {
   return _impl->render(c, x, y, color);
 }
