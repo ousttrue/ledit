@@ -1,11 +1,10 @@
-#include <glad.h>
 #include "font_atlas.h"
 #include "la.h"
 #include "glutil/shader.h"
 #include "glutil/texture.h"
 #include "base64.h"
 #include "utils.h"
-#include "../third-party/freetype2/include/ft2build.h"
+#include <ft2build.h>
 #include FT_FREETYPE_H
 #include <vector>
 #include <map>
@@ -72,7 +71,6 @@ public:
     smallest_top = 1e9;
     FT_Set_Pixel_Sizes(face, 0, fontSize);
     // TODO should this be here?
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (int i = 0; i < 128; i++) {
       if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
         std::cout << "Failed to load char: " << (char)i << "\n";
@@ -115,9 +113,9 @@ public:
       entries.insert(std::pair<char16_t, CharacterEntry>(entry.c, entry));
 
       entries[(char16_t)i].offset = (float)xOffset / (float)atlas_width;
-      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, entry.width, entry.height,
-                      GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
+
+      texture->subImage(xOffset, face->glyph->bitmap.buffer, entry.width,
+                        entry.height);
 
       xOffset += entry.width;
     }
@@ -126,12 +124,15 @@ public:
 
 private:
   void lazyLoad(char16_t c) {
-    if (entries.count(c))
+    if (entries.count(c)) {
       return;
+    }
+
     if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
       std::cout << "Failed to load char: " << (char)c << "\n";
       return;
     }
+
     CharacterEntry entry;
     auto bm = face->glyph->bitmap;
     entry.width = bm.width;
@@ -140,40 +141,24 @@ private:
     entry.left = face->glyph->bitmap_left;
     entry.advance = face->glyph->advance.x >> 6;
     entry.xPos = xOffset;
+
     auto old_width = atlas_width;
     auto old_height = atlas_height;
     atlas_width += bm.width;
     atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
     entry.offset = (float)xOffset / (float)atlas_width;
-    GLuint new_tex_id;
-    glGenTextures(1, &new_tex_id);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, new_tex_id);
-    // params
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    texture = Texture::create(atlas_width, atlas_height);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, (GLsizei)atlas_width,
-                 (GLsizei)atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-    //   glCopyImageSubData(texture_id, GL_TEXTURE_2D, 0, 0, 0, 0, new_tex_id,
-    //   GL_TEXTURE_2D, 0, 0, 0, 0, old_width, old_height, 0);
-    //   glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0,0,0,0, old_width, old_height);
-    //   xOffset = 0;
     for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
          it != entries.end(); ++it) {
       it->second.offset = (float)it->second.xPos / (float)atlas_width;
-      glTexSubImage2D(GL_TEXTURE_2D, 0, it->second.xPos, 0, it->second.width,
-                      it->second.height, GL_RED, GL_UNSIGNED_BYTE,
-                      it->second.data);
+      texture->subImage(it->second.xPos, it->second.data, it->second.width,
+                            it->second.height);
     }
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, entry.width, entry.height,
-                    GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
+    texture->subImage(xOffset, face->glyph->bitmap.buffer, entry.width, entry.height);
+
     entry.c = (char16_t)c;
     (&entry)->data = new uint8_t[(int)entry.width * (int)entry.height];
     memcpy(entry.data, face->glyph->bitmap.buffer, entry.width * entry.height);

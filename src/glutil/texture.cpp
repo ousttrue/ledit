@@ -10,6 +10,8 @@ struct TextureImpl {
     glGenTextures(1, &handle);
     glBindTexture(GL_TEXTURE_2D, handle);
 
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
     // params
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -23,6 +25,12 @@ struct TextureImpl {
   }
 
   ~TextureImpl() { glDeleteTextures(1, &handle); }
+
+  void subImage(int xOffset, const void *p, int width, int height) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, width, height, GL_RED,
+                    GL_UNSIGNED_BYTE, p);
+  }
 };
 
 ///
@@ -38,3 +46,7 @@ std::shared_ptr<Texture> Texture::create(int w, int h) {
 }
 
 uint32_t Texture::getHandle() const { return _impl->handle; }
+
+void Texture::subImage(int xOffset, const void *p, int width, int height) {
+  _impl->subImage(xOffset, p, width, height);
+}
