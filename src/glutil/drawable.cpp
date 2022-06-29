@@ -24,7 +24,7 @@ struct DrawableImpl {
     vbo.bind();
     for (size_t i = 0; i < len; ++i, ++layouts) {
       glEnableVertexAttribArray(i);
-      glVertexAttribPointer(i, layouts->size, layouts->type, GL_FALSE, stride,
+      glVertexAttribPointer(i, layouts->size, GL_FLOAT, GL_FALSE, stride,
                             (void *)layouts->offset);
       glVertexAttribDivisor(i, layouts->divisor);
     }

@@ -19,12 +19,12 @@
 #endif
 
 VertexLayout textVertexLayout[] = {
-    {GL_FLOAT, 2, offsetof(RenderChar, pos), 1},
-    {GL_FLOAT, 2, offsetof(RenderChar, size), 1},
-    {GL_FLOAT, 2, offsetof(RenderChar, uv_pos), 1},
-    {GL_FLOAT, 2, offsetof(RenderChar, uv_size), 1},
-    {GL_FLOAT, 4, offsetof(RenderChar, fg_color), 1},
-    {GL_FLOAT, 4, offsetof(RenderChar, bg_color), 1},
+    {2, offsetof(RenderChar, pos), 1},
+    {2, offsetof(RenderChar, size), 1},
+    {2, offsetof(RenderChar, uv_pos), 1},
+    {2, offsetof(RenderChar, uv_size), 1},
+    {4, offsetof(RenderChar, fg_color), 1},
+    {4, offsetof(RenderChar, bg_color), 1},
 };
 
 struct SelectionEntry {
@@ -33,8 +33,8 @@ struct SelectionEntry {
 };
 
 VertexLayout selVertexLayout[] = {
-    {GL_FLOAT, 2, offsetof(SelectionEntry, pos), 1},
-    {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
+    {2, offsetof(SelectionEntry, pos), 1},
+    {2, offsetof(SelectionEntry, size), 1},
 };
 
 

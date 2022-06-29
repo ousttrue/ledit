@@ -5,7 +5,7 @@
 #include <vector>
 
 struct VertexLayout {
-  uint32_t type; // GL_FLOAT
+  // uint32_t type; // GL_FLOAT
   int size;      // 1, 2, 3, 4(scalar, vec2, vec3, vec4)
   size_t offset;
   uint32_t divisor;
