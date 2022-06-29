@@ -6,32 +6,62 @@
 #include <sstream>
 #include <fstream>
 
-Cursor::Cursor(std::string path) {
-  this->path=path;
+static std::vector<std::string> splitNewLine(const std::string &base) {
+  std::stringstream stream;
+  stream.str("");
+  stream.clear();
+  std::vector<std::string> final;
+  for (auto c = base.begin(); c != base.end(); c++) {
+    const char e = *c;
+    if (e == '\n') {
+      final.push_back(stream.str());
+      stream.str("");
+      stream.clear();
+    } else {
+      stream << e;
+    }
+  }
+  final.push_back(stream.str());
+  return final;
+}
+
+std::shared_ptr<Cursor> Cursor::open(const std::string &path)
+{
+  auto cursor = std::shared_ptr<Cursor>(new Cursor);
+  cursor->setPath(path);
+  if(path.empty())
+  {
+    return cursor;
+  }
+
   if (path == "-") {
+    cursor->lines.clear();
     std::string line;
     while (std::getline(std::cin, line)) {
-      lines.push_back(create(line));
+      cursor->lines.push_back(create(line));
     }
-    return;
+    return cursor;
   }
-  std::stringstream ss;
+
   std::ifstream stream(path);
-  if (!stream.is_open()) {
-    lines.push_back(u"");
-    return;
+  if (!stream.is_open()) {    
+    return cursor;
   }
+
+  std::stringstream ss;
   ss << stream.rdbuf();
   std::string c = ss.str();
-  auto parts = splitNewLine(&c);
-  lines = std::vector<std::u16string>(parts.size());
+  auto parts = splitNewLine(c);
+
+  cursor->lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {
-    lines[count] = create(ref);
+    cursor->lines[count] = create(ref);
     count++;
   }
   stream.close();
-  last_write_time = std::filesystem::last_write_time(path);
+  cursor->last_write_time = std::filesystem::last_write_time(path);
+  return cursor;
 }
 
 void Cursor::setBounds(float height, float lineHeight) {
@@ -622,26 +652,6 @@ std::vector<std::string> Cursor::split(std::string base,
   return final;
 }
 
-std::vector<std::string> Cursor::splitNewLine(std::string *base) {
-  std::vector<std::string> final;
-  std::string::const_iterator c;
-  std::stringstream stream;
-  stream.str("");
-  stream.clear();
-  for (c = base->begin(); c != base->end(); c++) {
-    const char e = *c;
-    if (e == '\n') {
-      final.push_back(stream.str());
-      stream.str("");
-      stream.clear();
-    } else {
-      stream << e;
-    }
-  }
-  final.push_back(stream.str());
-  return final;
-}
-
 void Cursor::historyPush(int mode, int length, std::u16string content) {
   if (bind != nullptr)
     return;
@@ -707,7 +717,7 @@ bool Cursor::reloadFile(std::string path) {
   std::stringstream ss;
   ss << stream.rdbuf();
   std::string c = ss.str();
-  auto parts = splitNewLine(&c);
+  auto parts = splitNewLine(c);
   lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {
@@ -759,7 +769,7 @@ bool Cursor::openFile(std::string oldPath, std::string path) {
   std::stringstream ss;
   ss << stream.rdbuf();
   std::string c = ss.str();
-  auto parts = splitNewLine(&c);
+  auto parts = splitNewLine(c);
   lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {

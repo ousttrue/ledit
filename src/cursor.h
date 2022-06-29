@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <deque>
+#include <memory>
 #ifndef __APPLE__
 #include <filesystem>
 #endif
@@ -29,8 +30,9 @@ struct CommentEntry {
 };
 
 class Cursor {
+  std::string _path;
+
 public:
-  std::string path;
   bool edited = false;
   bool streamMode = false;
   bool useXFallback;
@@ -60,7 +62,11 @@ public:
   std::u16string *bind = nullptr;
 
   Cursor() { lines.push_back(u""); }
-  Cursor(std::string path);
+  static std::shared_ptr<Cursor> open(const std::string &path);
+
+  std::string getPath() const { return _path; }
+  void setPath(const std::string &path) { _path = path; }
+
   void setBounds(float height, float lineHeight);
   void trimTrailingWhiteSpaces();
   void comment(std::u16string commentStr);
@@ -88,7 +94,7 @@ public:
   std::vector<std::u16string> split(std::u16string base,
                                     std::u16string delimiter);
   std::vector<std::string> split(std::string base, std::string delimiter);
-  std::vector<std::string> splitNewLine(std::string *base);
+
   void historyPush(int mode, int length, std::u16string content);
   void historyPush(int mode, int length, std::u16string content,
                    void *userData);

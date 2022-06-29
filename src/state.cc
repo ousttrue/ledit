@@ -104,7 +104,7 @@ void State::switchBuffer() {
       return;
     }
     round = 0;
-    miniBuf = create(cursors[0]->path);
+    miniBuf = create(cursors[0]->getPath());
     active->bindTo(&miniBuf);
     mode = 5;
     status = u"Switch to: ";
@@ -112,7 +112,7 @@ void State::switchBuffer() {
     round++;
     if (round == cursors.size())
       round = 0;
-    miniBuf = create(cursors[round]->path);
+    miniBuf = create(cursors[round]->getPath());
   }
 }
 
@@ -237,7 +237,7 @@ void State::inform(bool success, bool shift_pressed) {
         status = u"Saved to: " + miniBuf;
         if (!path.length()) {
           path = convert_str(miniBuf);
-          active->path = path;
+          active->setPath(path);
           auto split = active->split(path, "/");
           std::string fName = split[split.size() - 1];
           fileName = create(fName);
@@ -284,7 +284,7 @@ void State::inform(bool success, bool shift_pressed) {
         size_t fIndex = 0;
         auto converted = convert_str(miniBuf);
         for (size_t i = 0; i < cursors.size(); i++) {
-          if (cursors[i]->path == converted) {
+          if (cursors[i]->getPath() == converted) {
             found = true;
             fIndex = i;
             break;
@@ -447,7 +447,7 @@ void State::deleteCursor(const std::shared_ptr<Cursor> &cursor) {
 
 void State::activateCursor(size_t cursorIndex) {
   active = cursors[cursorIndex];
-  this->path = active->path;
+  this->path = active->getPath();
   status = create(path);
   if (path.length()) {
     if (path == "-") {
@@ -474,7 +474,7 @@ void State::addCursor(std::string path) {
     path = "";
   }
 
-  auto newCursor = path.length() ? std::make_shared<Cursor>(path) : std::make_shared<Cursor>();
+  auto newCursor = Cursor::open(path);
   if (path.length()) {
     newCursor->branch = provider.getBranchName(path);
   }

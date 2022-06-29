@@ -88,7 +88,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
         } else {
           gState->exitFlag = true;
           gState->status =
-              create(edited->path.length() ? edited->path : "New File") +
+              create(edited->getPath().length() ? edited->getPath() : "New File") +
               u" edited, press ESC again to exit";
         }
       }
