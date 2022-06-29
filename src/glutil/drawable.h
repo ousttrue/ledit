@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -16,10 +17,9 @@ class Drawable {
   Drawable(const Drawable &) = delete;
   Drawable &operator=(const Drawable &) = delete;
 
+
 public:
-  Drawable(const std::vector<uint8_t> &vertex,
-           const std::vector<uint8_t> &fragment,
-           const std::vector<std::vector<uint8_t>> &others, size_t stride,
+  Drawable(const std::shared_ptr<class Shader> &shader, size_t stride,
            const VertexLayout *layouts, size_t len, size_t dataSize);
   ~Drawable();
 

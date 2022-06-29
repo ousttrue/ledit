@@ -1,7 +1,28 @@
 #include <glad.h>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include "shader.h"
+
+static std::vector<uint8_t> readbytes(const std::string &path) {
+  std::ifstream ifs(path);
+  if (ifs.fail()) {
+    return {};
+  }
+
+  ifs.seekg(0, ifs.end);
+  int end = static_cast<int>(ifs.tellg());
+  if (end == 0) {
+    return {};
+  }
+
+  std::vector<uint8_t> buffer(end + 1);
+  ifs.clear();
+  ifs.seekg(0, ifs.beg);
+  buffer[end] = 0;
+  ifs.read((char *)buffer.data(), end);
+  return buffer;
+}
 
 static void checkCompileErrors(GLuint shader, std::string type) {
   GLint success;
@@ -86,11 +107,24 @@ Shader::create(const std::vector<uint8_t> &vertex,
   glLinkProgram(shader->_impl->handle);
   checkCompileErrors(shader->_impl->handle, "PROGRAM");
 
-  for(auto shader: shader_ids)
-  {
+  for (auto shader : shader_ids) {
     glDeleteShader(shader);
   }
   return shader;
+}
+
+std::shared_ptr<Shader> Shader::createText() {
+  return create(readbytes("assets/text.vs"), readbytes("assets/text.fs"), {});
+}
+
+std::shared_ptr<Shader> Shader::createSelection() {
+  return create(readbytes("assets/selection.vs"),
+                readbytes("assets/selection.fs"), {});
+}
+
+std::shared_ptr<Shader> Shader::createCursor() {
+  return create(readbytes("assets/cursor.vs"), readbytes("assets/cursor.fs"),
+                {readbytes("assets/camera.vs")});
 }
 
 void Shader::set1f(const std::string &name, float v) {

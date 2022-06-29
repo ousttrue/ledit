@@ -2,6 +2,7 @@
 #include "drawable.h"
 #include "vertex_buffer.h"
 #include "shader.h"
+#include <memory>
 #include <vector>
 #include <stdint.h>
 
@@ -13,11 +14,9 @@ struct DrawableImpl {
   VBO vbo;
   VAO vao;
 
-  DrawableImpl(const std::vector<uint8_t> &vertex,
-               const std::vector<uint8_t> &fragment,
-               const std::vector<std::vector<uint8_t>> &others, size_t stride,
+  DrawableImpl(const std::shared_ptr<Shader> &shader, size_t stride,
                const VertexLayout *layouts, size_t len, size_t dataSize)
-      : shader(Shader::create(vertex, fragment, others)) {
+      : shader(shader) {
 
     vbo.dynamicData(dataSize);
 
@@ -42,12 +41,10 @@ struct DrawableImpl {
   }
 };
 
-Drawable::Drawable(const std::vector<uint8_t> &vertex,
-                   const std::vector<uint8_t> &fragment,
-                   const std::vector<std::vector<uint8_t>> &others,
+Drawable::Drawable(const std::shared_ptr<Shader> &shader,
                    size_t stride, const VertexLayout *layouts, size_t len,
                    size_t dataSize)
-    : _impl(new DrawableImpl(vertex, fragment, others, stride, layouts, len,
+    : _impl(new DrawableImpl(shader, stride, layouts, len,
                              dataSize)) {}
 Drawable::~Drawable() { delete _impl; }
 

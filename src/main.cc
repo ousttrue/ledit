@@ -37,25 +37,6 @@ VertexLayout selVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
 };
 
-static std::vector<uint8_t> readbytes(const std::string &path) {
-  std::ifstream ifs(path);
-  if (ifs.fail()) {
-    return {};
-  }
-
-  ifs.seekg(0, ifs.end);
-  int end = static_cast<int>(ifs.tellg());
-  if (end == 0) {
-    return {};
-  }
-
-  std::vector<uint8_t> buffer(end + 1);
-  ifs.clear();
-  ifs.seekg(0, ifs.beg);
-  buffer[end] = 0;
-  ifs.read((char *)buffer.data(), end);
-  return buffer;
-}
 
 int main(int argc, char **argv) {
 #ifdef _WIN32
@@ -90,19 +71,15 @@ int main(int argc, char **argv) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   state.init();
 
-  auto text = std::shared_ptr<Drawable>(new Drawable(
-      readbytes("assets/text.vs"), readbytes("assets/text.fs"), {},
+  auto text = std::shared_ptr<Drawable>(new Drawable(Shader::createText(),
       sizeof(RenderChar), textVertexLayout, _countof(textVertexLayout),
       sizeof(RenderChar) * 600 * 1000));
 
-  auto selection = std::shared_ptr<Drawable>(new Drawable(
-      readbytes("assets/selection.vs"), readbytes("assets/selection.fs"), {},
+  auto selection = std::shared_ptr<Drawable>(new Drawable(Shader::createSelection(),
       sizeof(SelectionEntry), selVertexLayout, _countof(selVertexLayout),
       sizeof(SelectionEntry) * 16));
 
-  auto cursor_shader = Shader::create(readbytes("assets/cursor.vs"),
-                                      readbytes("assets/cursor.fs"),
-                                      {readbytes("assets/camera.vs")});
+  auto cursor_shader = Shader::createCursor();
 
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
