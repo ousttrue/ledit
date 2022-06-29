@@ -1,3 +1,4 @@
+#include <glad.h>
 #include "state.h"
 #include "glutil/shader.h"
 #include "cursor.h"

@@ -27,6 +27,11 @@ VertexLayout textVertexLayout[] = {
     {GL_FLOAT, 4, offsetof(RenderChar, bg_color), 1},
 };
 
+struct SelectionEntry {
+  Vec2f pos;
+  Vec2f size;
+};
+
 VertexLayout selVertexLayout[] = {
     {GL_FLOAT, 2, offsetof(SelectionEntry, pos), 1},
     {GL_FLOAT, 2, offsetof(SelectionEntry, size), 1},
@@ -95,9 +100,9 @@ int main(int argc, char **argv) {
       sizeof(SelectionEntry), selVertexLayout, _countof(selVertexLayout),
       sizeof(SelectionEntry) * 16));
 
-  Shader cursor_shader(readbytes("assets/cursor.vs"),
-                       readbytes("assets/cursor.fs"),
-                       {readbytes("assets/camera.vs")});
+  auto cursor_shader = Shader::create(readbytes("assets/cursor.vs"),
+                                      readbytes("assets/cursor.fs"),
+                                      {readbytes("assets/camera.vs")});
 
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
@@ -322,16 +327,16 @@ int main(int argc, char **argv) {
                              6, (GLsizei)entries.size());
 
     if (state.focused) {
-      cursor_shader.use();
-      cursor_shader.set1f("cursor_height", toOffset);
-      cursor_shader.set2f("resolution", (float)WIDTH, (float)HEIGHT);
+      cursor_shader->use();
+      cursor_shader->set1f("cursor_height", toOffset);
+      cursor_shader->set2f("resolution", (float)WIDTH, (float)HEIGHT);
       if (state.mode != 0 && state.mode != 32) {
         // use cursor for minibuffer
         float cursorX = -(int32_t)(WIDTH / 2) + 15 +
                         (state.atlas->getAdvance(cursor->getCurrentAdvance())) +
                         5 + statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
-        cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
+        cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
@@ -345,7 +350,7 @@ int main(int argc, char **argv) {
           cursorX = (WIDTH / 2) - 3;
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
                         (toOffset * ((cursor->y - cursor->skip) + 1));
-        cursor_shader.set2f("cursor_pos", cursorX, -cursorY);
+        cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }

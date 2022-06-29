@@ -26,6 +26,7 @@ add_executable(
   src/glutil/vertex_buffer.cpp
   src/glutil/drawable.cpp
   src/glutil/texture.cpp
+  src/glutil/shader.cpp
   src/la.cc
   src/main.cc
   src/state.cc

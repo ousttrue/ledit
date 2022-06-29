@@ -1,3 +1,4 @@
+#include <glad.h>
 #include "font_atlas.h"
 #include "la.h"
 #include "glutil/shader.h"
