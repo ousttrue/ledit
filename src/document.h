@@ -83,17 +83,12 @@ public:
   std::u16string replaceOne(std::u16string what, std::u16string replace,
                             bool allowCenter = true, bool shouldOffset = true);
   size_t replaceAll(std::u16string what, std::u16string replace);
-  int findAnyOf(std::u16string str, std::u16string what);
-  int findAnyOfLast(std::u16string str, std::u16string what);
   void advanceWord();
   std::u16string deleteWord();
   bool undo();
   void advanceWordBackwards();
   void gotoLine(int l);
   void center(int l);
-  std::vector<std::u16string> split(std::u16string base,
-                                    std::u16string delimiter);
-  std::vector<std::string> split(std::string base, std::string delimiter);
 
   void historyPush(int mode, int length, std::u16string content);
   void historyPush(int mode, int length, std::u16string content,

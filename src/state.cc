@@ -214,7 +214,7 @@ void State::search() {
 }
 
 void State::tryEnableHighlighting() {
-  std::vector<std::u16string> fileParts = active->split(fileName, u".");
+  std::vector<std::u16string> fileParts = split(fileName, u".");
   std::string ext = convert_str(fileParts[fileParts.size() - 1]);
   const Language *lang =
       has_language(fileName == u"Dockerfile" ? "dockerfile" : ext);
@@ -237,8 +237,8 @@ void State::inform(bool success, bool shift_pressed) {
         if (!path.length()) {
           path = convert_str(miniBuf);
           active->setPath(path);
-          auto split = active->split(path, "/");
-          std::string fName = split[split.size() - 1];
+          auto splited = split(path, "/");
+          std::string fName = splited.back();
           fileName = create(fName);
           std::string window_name = "ledit: " + path;
           // glfwSetWindowTitle(window, window_name.c_str());
@@ -455,8 +455,8 @@ void State::activateCursor(size_t cursorIndex) {
       hasHighlighting = false;
       renderCoords();
     } else {
-      auto split = active->split(path, "/");
-      fileName = create(split[split.size() - 1]);
+      auto splited = split(path, "/");
+      fileName = create(splited.back());
       tryEnableHighlighting();
       checkChanged();
     }

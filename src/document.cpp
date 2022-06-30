@@ -25,12 +25,42 @@ static std::vector<std::string> splitNewLine(const std::string &base) {
   return final;
 }
 
-std::shared_ptr<Document> Document::open(const std::string &path)
-{
+static int findAnyOfLast(std::u16string str, std::u16string what) {
+  if (str.length() == 0)
+    return -1;
+  std::u16string::const_iterator c;
+  int offset = 0;
+  for (c = str.end() - 1; c != str.begin(); c--) {
+
+    if (c != str.end() - 1 && what.find(*c) != std::string::npos) {
+      return offset;
+    }
+    offset++;
+  }
+
+  return -1;
+}
+
+static int findAnyOf(std::u16string str, std::u16string what) {
+  if (str.length() == 0)
+    return -1;
+  std::u16string::const_iterator c;
+  int offset = 0;
+  for (c = str.begin(); c != str.end(); c++) {
+
+    if (c != str.begin() && what.find(*c) != std::string::npos) {
+      return offset;
+    }
+    offset++;
+  }
+
+  return -1;
+}
+
+std::shared_ptr<Document> Document::open(const std::string &path) {
   auto cursor = std::shared_ptr<Document>(new Document);
   cursor->setPath(path);
-  if(path.empty())
-  {
+  if (path.empty()) {
     return cursor;
   }
 
@@ -44,7 +74,7 @@ std::shared_ptr<Document> Document::open(const std::string &path)
   }
 
   std::ifstream stream(path);
-  if (!stream.is_open()) {    
+  if (!stream.is_open()) {
     return cursor;
   }
 
@@ -216,8 +246,8 @@ void Document::deleteSelection() {
       toSave.push_back(_lines[ySmall + 1]);
       if (i == yBig - ySmall - 1) {
         _x = _lines[ySmall].length();
-        _lines[ySmall] += _lines[ySmall + 1].substr(isStart ? _selection.xEnd
-                                                          : _selection.xStart);
+        _lines[ySmall] += _lines[ySmall + 1].substr(
+            isStart ? _selection.xEnd : _selection.xStart);
       }
       _lines.erase(_lines.begin() + ySmall + 1);
     }
@@ -256,8 +286,8 @@ int Document::getSelectionSize() {
     return 0;
   if (_selection.yStart == _selection.yEnd)
     return _selection.getXBigger() - _selection.getXSmaller();
-  int offset =
-      (_lines[_selection.yStart].length() - _selection.xStart) + _selection.xEnd;
+  int offset = (_lines[_selection.yStart].length() - _selection.xStart) +
+               _selection.xEnd;
   for (int w = _selection.getYSmaller(); w < _selection.getYBigger(); w++) {
     if (w == _selection.getYSmaller() || w == _selection.getYBigger()) {
       continue;
@@ -281,7 +311,7 @@ void Document::unbind() {
 }
 
 std::u16string Document::search(std::u16string what, bool skipFirst,
-                              bool shouldOffset) {
+                                bool shouldOffset) {
   int i = shouldOffset ? _y : 0;
   bool found = false;
   for (int x = i; x < _lines.size(); x++) {
@@ -307,7 +337,7 @@ std::u16string Document::search(std::u16string what, bool skipFirst,
 }
 
 std::u16string Document::replaceOne(std::u16string what, std::u16string replace,
-                                  bool allowCenter, bool shouldOffset) {
+                                    bool allowCenter, bool shouldOffset) {
   int i = shouldOffset ? _y : 0;
   bool found = false;
   for (int x = i; x < _lines.size(); x++) {
@@ -356,38 +386,6 @@ size_t Document::replaceAll(std::u16string what, std::u16string replace) {
     _xSave = _x;
   }
   return c;
-}
-
-int Document::findAnyOf(std::u16string str, std::u16string what) {
-  if (str.length() == 0)
-    return -1;
-  std::u16string::const_iterator c;
-  int offset = 0;
-  for (c = str.begin(); c != str.end(); c++) {
-
-    if (c != str.begin() && what.find(*c) != std::string::npos) {
-      return offset;
-    }
-    offset++;
-  }
-
-  return -1;
-}
-
-int Document::findAnyOfLast(std::u16string str, std::u16string what) {
-  if (str.length() == 0)
-    return -1;
-  std::u16string::const_iterator c;
-  int offset = 0;
-  for (c = str.end() - 1; c != str.begin(); c--) {
-
-    if (c != str.end() - 1 && what.find(*c) != std::string::npos) {
-      return offset;
-    }
-    offset++;
-  }
-
-  return -1;
 }
 
 void Document::advanceWord() {
@@ -623,35 +621,6 @@ void Document::center(int l) {
   }
 }
 
-std::vector<std::u16string> Document::split(std::u16string base,
-                                          std::u16string delimiter) {
-  std::vector<std::u16string> final;
-  size_t pos = 0;
-  std::u16string token;
-  while ((pos = base.find(delimiter)) != std::string::npos) {
-    token = base.substr(0, pos);
-    final.push_back(token);
-    base.erase(0, pos + delimiter.length());
-  }
-  final.push_back(base);
-  return final;
-}
-
-std::vector<std::string> Document::split(std::string base,
-                                       std::string delimiter) {
-  std::vector<std::string> final;
-  final.reserve(base.length() / 76);
-  size_t pos = 0;
-  std::string token;
-  while ((pos = base.find(delimiter)) != std::string::npos) {
-    token = base.substr(0, pos);
-    final.push_back(token);
-    base.erase(0, pos + delimiter.length());
-  }
-  final.push_back(base);
-  return final;
-}
-
 void Document::historyPush(int mode, int length, std::u16string content) {
   if (_bind != nullptr)
     return;
@@ -668,7 +637,7 @@ void Document::historyPush(int mode, int length, std::u16string content) {
 }
 
 void Document::historyPush(int mode, int length, std::u16string content,
-                         void *userData) {
+                           void *userData) {
   if (_bind != nullptr)
     return;
   _edited = true;
@@ -684,8 +653,9 @@ void Document::historyPush(int mode, int length, std::u16string content,
   _history.push_front(entry);
 }
 
-void Document::historyPushWithExtra(int mode, int length, std::u16string content,
-                                  std::vector<std::u16string> extra) {
+void Document::historyPushWithExtra(int mode, int length,
+                                    std::u16string content,
+                                    std::vector<std::u16string> extra) {
   if (_bind != nullptr)
     return;
   _edited = true;
@@ -939,7 +909,8 @@ void Document::removeOne() {
     std::u16string *copyTarget = &_lines[_y - 1];
     int xTarget = copyTarget->length();
     if (target->length() > 0) {
-      historyPushWithExtra(5, (&_lines[_y])->length(), _lines[_y], {_lines[_y - 1]});
+      historyPushWithExtra(5, (&_lines[_y])->length(), _lines[_y],
+                           {_lines[_y - 1]});
       copyTarget->append(*target);
     } else {
       historyPush(5, (&_lines[_y])->length(), _lines[_y]);
