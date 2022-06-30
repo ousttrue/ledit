@@ -5,172 +5,211 @@
 #include "base64.h"
 #include "utils.h"
 #include <ft2build.h>
+#include <memory>
+#include <stdint.h>
+#include <utility>
 #include FT_FREETYPE_H
 #include <vector>
 #include <map>
 #include <iostream>
+#include <assert.h>
 
 struct CharacterEntry {
-  float width;
-  float height;
-  float top;
-  float left;
-  float advance;
-  float offset;
-  uint8_t *data = nullptr;
-  int xPos;
-  char16_t c;
+  float width = 0;
+  float height = 0;
+  float top = 0;
+  float left = 0;
+  float advance = 0;
+  float offset = 0;
+  std::vector<uint8_t> bitmap;
+  int xPos = 0;
+  char16_t c = 0;
+
+  void load(char16_t c, FT_GlyphSlot glyph, int xOffset) {
+    auto &bm = glyph->bitmap;
+    this->width = bm.width;
+    this->height = bm.rows;
+    this->top = glyph->bitmap_top;
+    this->left = glyph->bitmap_left;
+    this->advance = glyph->advance.x >> 6;
+    this->xPos = xOffset;
+    this->c = c;
+    this->bitmap.resize((int)width * (int)height);
+    memcpy(bitmap.data(), glyph->bitmap.buffer, bitmap.size());
+
+    // CharacterEntry entry;
+    // auto bm = glyph->bitmap;
+    // entry.width = bm.width;
+    // entry.height = bm.rows;
+    // entry.top = glyph->bitmap_top;
+    // entry.left = glyph->bitmap_left;
+    // entry.advance = glyph->advance.x >> 6;
+    // entry.xPos = xOffset;
+  }
 };
 
-struct FontAtlasImpl {
-  FT_UInt atlas_width, atlas_height, smallest_top;
+struct FreeType {
   FT_Library ft;
-  FT_Face face;
-  bool wasGenerated = false;
-  std::shared_ptr<Texture> texture;
-  std::map<char16_t, CharacterEntry> entries;
-  std::map<int, std::vector<float>> linesCache;
-  uint32_t fs;
-  int xOffset = 0;
-  std::map<int, std::u16string> contentCache;
 
-  FontAtlasImpl(const std::string &path, uint32_t fontSize) {
+  FreeType() {
     if (FT_Init_FreeType(&ft)) {
-      std::cout << "ERROR::FREETYPE: Could not init FreeType Library"
-                << std::endl;
-      return;
+      assert(false);
     }
-    readFont(path, fontSize);
   }
+  ~FreeType() { FT_Done_FreeType(ft); }
+};
 
-  void readFont(std::string path, uint32_t fontSize) {
-    if (wasGenerated) {
-      FT_Done_Face(face);
-    }
+class FreeTypeFace {
+  FT_Face _face;
+  uint32_t fs = 0;
+  FreeTypeFace(FT_Face face) : _face(face) {}
+
+public:
+  ~FreeTypeFace() { FT_Done_Face(_face); }
+  static std::unique_ptr<FreeTypeFace> read(FT_Library ft,
+                                            const std::string &path) {
+    FT_Face face;
     int x = FT_New_Face(ft, path.c_str(), 0, &face);
     if (x) {
       std::cout << "ERROR::FREETYPE: Failed to load font " << x << std::endl;
-      return;
+      return {};
     }
-    renderFont(fontSize);
+    return std::unique_ptr<FreeTypeFace>(new FreeTypeFace(face));
+  }
+
+  void setSize(uint32_t height) {
+    FT_Set_Pixel_Sizes(_face, 0, height);
+    fs = height;
+  }
+
+  FT_GlyphSlot load(int i) {
+    if (FT_Load_Char(_face, i, FT_LOAD_RENDER)) {
+      std::cout << "Failed to load char: " << (char)i << "\n";
+      return nullptr;
+    }
+    return _face->glyph;
+  }
+};
+
+struct FontAtlasImpl {
+  std::unique_ptr<FreeType> _ft;
+  std::unique_ptr<FreeTypeFace> _face;
+  FT_UInt atlas_width, atlas_height, smallest_top;
+  std::shared_ptr<Texture> texture;
+  std::map<char16_t, CharacterEntry> entries;
+  std::map<int, std::vector<float>> linesCache;
+  int xOffset = 0;
+  std::map<int, std::u16string> contentCache;
+
+  FontAtlasImpl() : _ft(new FreeType()) {}
+
+  CharacterEntry *createEntry(uint16_t c, FT_GlyphSlot glyph) {
+    // auto found = entries.find(c);
+    // if (found != entries.end()) {
+    //   return &found->second;
+    // }
+
+    auto kv_success = entries.insert(std::make_pair(c, CharacterEntry()));
+    assert(kv_success.second);
+    auto &entry = kv_success.first->second;
+    entry.load(c, glyph, xOffset);
+
+    entry.offset = (float)xOffset / (float)atlas_width;
+    if (smallest_top == 0 && entry.top > 0)
+      smallest_top = entry.top;
+    else
+      smallest_top =
+          entry.top < smallest_top && entry.top != 0 ? entry.top : smallest_top;
+
+    return &entry;
   }
 
 public:
+  void readFont(const std::string &path) {
+    _face = FreeTypeFace::read(_ft->ft, path);
+  }
+
   void renderFont(uint32_t fontSize) {
-    if (wasGenerated) {
-      for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
-           it != entries.end(); ++it) {
-        delete[] it->second.data;
-      }
-      entries.clear();
-      linesCache.clear();
-    }
-    fs = fontSize;
+    entries.clear();
+    linesCache.clear();
     atlas_width = 0;
     atlas_height = 0;
     smallest_top = 1e9;
-    FT_Set_Pixel_Sizes(face, 0, fontSize);
+    xOffset = 0;
+    _face->setSize(fontSize);
+
     // TODO should this be here?
     for (int i = 0; i < 128; i++) {
-      if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
-        std::cout << "Failed to load char: " << (char)i << "\n";
-        return;
+      auto glyph = _face->load(i);
+      if (glyph) {
+        auto &bm = glyph->bitmap;
+        atlas_width += bm.width;
+        atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
       }
-      auto bm = face->glyph->bitmap;
-      atlas_width += bm.width;
-      atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
     }
     atlas_width *= 2;
 
     // texture
     texture = Texture::create(atlas_width, atlas_height);
 
-    xOffset = 0;
-    for (int i = 0; i < 128; i++) {
-      if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
-        std::cout << "Failed to load char: " << (char)i << "\n";
+    for (uint16_t c = 0; c < 128; c++) {
+      auto glyph = _face->load(c);
+      if (!glyph) {
+        std::cout << "Failed to load char: " << c << "\n";
         return;
       }
-
-      CharacterEntry entry;
-      auto bm = face->glyph->bitmap;
-      entry.width = bm.width;
-      entry.height = bm.rows;
-      entry.top = face->glyph->bitmap_top;
-      entry.left = face->glyph->bitmap_left;
-      entry.advance = face->glyph->advance.x >> 6;
-      entry.xPos = xOffset;
-      entry.c = (char16_t)i;
-      (&entry)->data = new uint8_t[(int)entry.width * (int)entry.height];
-      memcpy(entry.data, face->glyph->bitmap.buffer,
-             entry.width * entry.height);
-      if (smallest_top == 0 && entry.top > 0)
-        smallest_top = entry.top;
-      else
-        smallest_top = entry.top < smallest_top && entry.top != 0
-                           ? entry.top
-                           : smallest_top;
-      entries.insert(std::pair<char16_t, CharacterEntry>(entry.c, entry));
-
-      entries[(char16_t)i].offset = (float)xOffset / (float)atlas_width;
-
-      texture->subImage(xOffset, face->glyph->bitmap.buffer, entry.width,
-                        entry.height);
-
-      xOffset += entry.width;
+      auto entry = createEntry(c, glyph);
+      texture->subImage(xOffset, glyph->bitmap.buffer, entry->width,
+                        entry->height);
+      xOffset += entry->width;
     }
-    wasGenerated = true;
   }
 
 private:
   void lazyLoad(char16_t c) {
     if (entries.count(c)) {
+      // already exists
       return;
     }
 
-    if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+    auto glyph = _face->load(c);
+    if (!glyph) {
       std::cout << "Failed to load char: " << (char)c << "\n";
       return;
     }
 
-    CharacterEntry entry;
-    auto bm = face->glyph->bitmap;
-    entry.width = bm.width;
-    entry.height = bm.rows;
-    entry.top = face->glyph->bitmap_top;
-    entry.left = face->glyph->bitmap_left;
-    entry.advance = face->glyph->advance.x >> 6;
-    entry.xPos = xOffset;
+    auto entry = createEntry(c, glyph);
 
     auto old_width = atlas_width;
     auto old_height = atlas_height;
-    atlas_width += bm.width;
-    atlas_height = bm.rows > atlas_height ? bm.rows : atlas_height;
-    entry.offset = (float)xOffset / (float)atlas_width;
+    atlas_width += glyph->bitmap.width;
+    atlas_height =
+        glyph->bitmap.rows > atlas_height ? glyph->bitmap.rows : atlas_height;
+    entry->offset = (float)xOffset / (float)atlas_width;
 
     texture = Texture::create(atlas_width, atlas_height);
 
+    // copy
     for (std::map<char16_t, CharacterEntry>::iterator it = entries.begin();
          it != entries.end(); ++it) {
       it->second.offset = (float)it->second.xPos / (float)atlas_width;
-      texture->subImage(it->second.xPos, it->second.data, it->second.width,
-                            it->second.height);
+      texture->subImage(it->second.xPos, it->second.bitmap.data(),
+                        it->second.width, it->second.height);
     }
 
-    texture->subImage(xOffset, face->glyph->bitmap.buffer, entry.width, entry.height);
+    // add
+    texture->subImage(xOffset, glyph->bitmap.buffer, entry->width,
+                      entry->height);
 
-    entry.c = (char16_t)c;
-    (&entry)->data = new uint8_t[(int)entry.width * (int)entry.height];
-    memcpy(entry.data, face->glyph->bitmap.buffer, entry.width * entry.height);
-    xOffset += entry.width;
-    entries.insert(std::pair<char16_t, CharacterEntry>(entry.c, entry));
+    xOffset += entry->width;
   }
 
 public:
   RenderChar render(char16_t c, float x = 0.0, float y = 0.0,
                     Vec4f color = vec4fs(1)) {
-    if (c >= 128)
+    if (c >= 128) {
       lazyLoad(c);
+    }
 
     auto *entry = &entries[c];
     RenderChar r;
@@ -184,6 +223,7 @@ public:
     r.fg_color = color;
     return r;
   }
+
   float getAdvance(char16_t c) { return entries[c].advance; }
 
   float getAdvance(const std::u16string &line) {
@@ -231,12 +271,16 @@ public:
 /// FontAtlas
 ///
 FontAtlas::FontAtlas(const std::string &path, uint32_t fontSize)
-    : _impl(new FontAtlasImpl(path, fontSize)) {}
+    : _impl(new FontAtlasImpl) {
+  readFont(path, fontSize);
+}
 FontAtlas::~FontAtlas() { delete _impl; }
 void FontAtlas::readFont(const std::string &path, uint32_t fontSize) {
-  _impl->readFont(path, fontSize);
+  _impl->readFont(path);
+  _impl->renderFont(fontSize);
 }
 void FontAtlas::renderFont(uint32_t fontSize) { _impl->renderFont(fontSize); }
+
 float FontAtlas::getAdvance(uint16_t ch) { return _impl->getAdvance(ch); }
 float FontAtlas::getAdvance(const std::string &line) {
   return _impl->getAdvance(line);
