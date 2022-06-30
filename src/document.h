@@ -33,14 +33,16 @@ class Document {
   std::string _path;
   bool _streamMode = false;
   bool _useXFallback;
+  std::map<std::string, PosEntry> _saveLocs;
+  std::filesystem::file_time_type _last_write_time;
+
 public:
   std::string _branch;
   bool _edited = false;
   std::vector<std::u16string> _lines;
-  std::map<std::string, PosEntry> _saveLocs;
-  std::deque<HistoryEntry> _history;
-  std::filesystem::file_time_type _last_write_time;
   Selection _selection;
+  std::deque<HistoryEntry> _history;
+
   int _x = 0;
   int _y = 0;
   int _xSave = 0;
@@ -65,28 +67,35 @@ public:
 
   std::string getPath() const { return _path; }
   void setPath(const std::string &path) { _path = path; }
-
-  void setBounds(float height, float lineHeight);
-  void trimTrailingWhiteSpaces();
   void comment(std::u16string commentStr);
+  void setBounds(float height, float lineHeight);
   void setRenderStart(float x, float y);
+  std::string getSelection();
+  int getSelectionSize();
+
+private:
+  void trimTrailingWhiteSpaces();
   void setPosFromMouse(float mouseX, float mouseY, class FontAtlas *atlas);
   void reset();
   void deleteSelection();
-  std::string getSelection();
-  int getSelectionSize();
+
+public:
+  void advanceWordBackwards();
+  std::u16string replaceOne(std::u16string what, std::u16string replace,
+                            bool allowCenter = true, bool shouldOffset = true);
+  size_t replaceAll(std::u16string what, std::u16string replace);
   void bindTo(std::u16string *entry, bool useXSave = false);
   void unbind();
   std::u16string search(std::u16string what, bool skipFirst,
                         bool shouldOffset = true);
-  std::u16string replaceOne(std::u16string what, std::u16string replace,
-                            bool allowCenter = true, bool shouldOffset = true);
-  size_t replaceAll(std::u16string what, std::u16string replace);
-  void advanceWord();
   std::u16string deleteWord();
   bool undo();
-  void advanceWordBackwards();
   void gotoLine(int l);
+  bool didChange(std::string path);
+  bool reloadFile(std::string path);
+  void advanceWord();
+
+private:
   void center(int l);
 
   void historyPush(int mode, int length, std::u16string content);
@@ -94,26 +103,28 @@ public:
                    void *userData);
   void historyPushWithExtra(int mode, int length, std::u16string content,
                             std::vector<std::u16string> extra);
-  bool didChange(std::string path);
-  bool reloadFile(std::string path);
   bool openFile(std::string oldPath, std::string path);
-  void append(char16_t c);
   void appendWithLines(std::u16string content);
-  void append(std::u16string content);
-  std::u16string getCurrentAdvance(bool useSaveValue = false);
-  void removeBeforeCursor();
+
+public:
   void removeOne();
+  void removeBeforeCursor();
   void moveUp();
   void moveDown();
+  void append(char16_t c);
+  void append(std::u16string content);
+  std::u16string getCurrentAdvance(bool useSaveValue = false);
   void jumpStart();
   void jumpEnd();
-  void moveRight();
-  void moveLeft();
   bool saveTo(std::string path);
   std::vector<std::pair<int, std::u16string>> *
   getContent(class FontAtlas *atlas, float maxWidth, bool onlyCalculate);
-  void moveLine(int diff);
-  void calcTotalOffset();
   int getTotalOffset();
+  void moveLine(int diff);
+  void moveRight();
+  void moveLeft();
+
+private:
+  void calcTotalOffset();
   std::vector<std::string> getSaveLocKeys();
 };
