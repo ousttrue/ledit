@@ -26,7 +26,7 @@ public:
   float getAdvance(const std::string &line);
   float getAdvance(const std::u16string &line);
   float getHeight() const;
-  uint32_t getTexture() const;
+  class Texture *getTexture() const;
   RenderChar render(char16_t c, float x = 0.0, float y = 0.0,
                     Vec4f color = vec4fs(1));
 };

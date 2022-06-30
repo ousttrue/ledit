@@ -1,5 +1,6 @@
 #include <glad.h>
 #include <memory>
+#include <stdint.h>
 #include "texture.h"
 
 struct TextureImpl {
@@ -31,6 +32,13 @@ struct TextureImpl {
     glTexSubImage2D(GL_TEXTURE_2D, 0, xOffset, 0, width, height, GL_RED,
                     GL_UNSIGNED_BYTE, p);
   }
+
+  void bind(uint32_t slot) {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, handle);
+  }
+
+  void unbind() { glBindTexture(GL_TEXTURE_2D, 0); }
 };
 
 ///
@@ -46,6 +54,8 @@ std::shared_ptr<Texture> Texture::create(int w, int h) {
 }
 
 uint32_t Texture::getHandle() const { return _impl->handle; }
+void Texture::bind(uint32_t slot) { _impl->bind(slot); }
+void Texture::unbind() { _impl->unbind(); }
 
 void Texture::subImage(int xOffset, const void *p, int width, int height) {
   _impl->subImage(xOffset, p, width, height);

@@ -17,7 +17,8 @@ bool initialize(void *getProc) {
   return true;
 }
 
-void clear(const float color[4]) {
+void clear(int w, int h, const float color[4]) {
+  glViewport(0, 0, w, h);
   glClearColor(color[0], color[1], color[2], color[3]);
   glClear(GL_COLOR_BUFFER_BIT);
 }

@@ -2,13 +2,13 @@
 #define kIOMainPortDefault kIOMasterPortDefault
 #endif
 
-#include <glad.h>
 #include "state.h"
 #include "font_atlas.h"
 #include "glfwapp.h"
 #include "glutil/gpu.h"
 #include "glutil/drawable.h"
 #include "glutil/shader.h"
+#include "glutil/texture.h"
 #include <memory>
 #include <iostream>
 #include <fstream>
@@ -76,13 +76,12 @@ int main(int argc, char **argv) {
 
   auto cursor_shader = Shader::createCursor();
 
-  glViewport(0, 0, state.WIDTH, state.HEIGHT);
-  float xscale, yscale;
-  std::tie(xscale, yscale) = app.getScale();
-  std::cout << state.WIDTH << ", " << state.HEIGHT << ":" << xscale << ", "
-            << yscale << std::endl;
-  state.WIDTH *= xscale;
-  state.HEIGHT *= yscale;
+  // float xscale, yscale;
+  // std::tie(xscale, yscale) = app.getScale();
+  // std::cout << state.WIDTH << ", " << state.HEIGHT << ":" << xscale << ", "
+  //           << yscale << std::endl;
+  // state.WIDTH *= xscale;
+  // state.HEIGHT *= yscale;
 
   int fontSize = 0;
   float WIDTH = 0;
@@ -113,7 +112,7 @@ int main(int argc, char **argv) {
     auto be_color = state.provider.colors.background_color;
     auto status_color = state.provider.colors.status_color;
 
-    gpu::clear(&be_color.x);
+    gpu::clear(state.WIDTH, state.HEIGHT, &be_color.x);
 
     if (state.highlightLine) {
       selection->use();
@@ -130,8 +129,8 @@ int main(int argc, char **argv) {
     text->use();
     text->set("resolution", WIDTH, HEIGHT);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, atlas->getTexture());
+    atlas->getTexture()->bind(0);
+
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
     std::vector<RenderChar> entries;
     std::u16string::const_iterator c;
@@ -141,8 +140,8 @@ int main(int argc, char **argv) {
     int start = cursor->_skip;
     float linesAdvance = 0;
     int maxLines = cursor->_skip + (cursor->_maxLines <= cursor->_lines.size()
-                                       ? cursor->_skip + cursor->_maxLines
-                                       : cursor->_lines.size());
+                                        ? cursor->_skip + cursor->_maxLines
+                                        : cursor->_lines.size());
     if (state.showLineNumbers) {
       int biggestLine = std::to_string(maxLines).length();
       auto maxLineAdvance = atlas->getAdvance(std::to_string(maxLines));
@@ -297,7 +296,7 @@ int main(int argc, char **argv) {
     }
 
     text->drawUploadInstance(&entries[0], sizeof(RenderChar) * entries.size(),
-                             6, (GLsizei)entries.size());
+                             6, entries.size());
 
     if (state.focused) {
       cursor_shader->use();
@@ -311,7 +310,6 @@ int main(int argc, char **argv) {
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
-        glBindTexture(GL_TEXTURE_2D, 0);
       }
 
       if (isSearchMode || state.mode == 0) {
@@ -325,7 +323,6 @@ int main(int argc, char **argv) {
                         (toOffset * ((cursor->_y - cursor->_skip) + 1));
         cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
-        glBindTexture(GL_TEXTURE_2D, 0);
       }
     }
     if (cursor->_selection.active) {
@@ -414,7 +411,8 @@ int main(int argc, char **argv) {
               }
             }
           }
-          if (yEnd >= cursor->_skip && yEnd <= cursor->_skip + cursor->_maxLines) {
+          if (yEnd >= cursor->_skip &&
+              yEnd <= cursor->_skip + cursor->_maxLines) {
             int yEffective = cursor->_selection.getYEnd() - cursor->_skip;
             int xStart = cursor->_selection.getXEnd();
             if (xStart >= cursor->_xOffset) {
@@ -472,11 +470,9 @@ int main(int argc, char **argv) {
         selection->drawUploadInstance(&selectionBoundaries[0],
                                       sizeof(SelectionEntry) *
                                           selectionBoundaries.size(),
-                                      6, (GLsizei)selectionBoundaries.size());
+                                      6, selectionBoundaries.size());
       }
     }
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     app.flush();
     state.cacheValid = true;

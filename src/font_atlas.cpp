@@ -293,7 +293,7 @@ std::vector<float> *FontAtlas::getAllAdvance(const std::u16string &line,
   return _impl->getAllAdvance(line, y);
 }
 float FontAtlas::getHeight() const { return _impl->atlas_height; }
-uint32_t FontAtlas::getTexture() const { return _impl->texture->getHandle(); }
+Texture *FontAtlas::getTexture() const { return _impl->texture.get(); }
 RenderChar FontAtlas::render(char16_t c, float x, float y, Vec4f color) {
   return _impl->render(c, x, y, color);
 }
