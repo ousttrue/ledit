@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "highlighting.h"
 #include "providers.h"
-#include "cursor.h"
+#include "document.h"
 
 struct ReplaceBuffer {
   std::u16string search = u"";
@@ -18,8 +18,8 @@ public:
   bool focused = true;
   bool exitFlag = false;
   bool cacheValid = false;
-  std::shared_ptr<Cursor> active;
-  std::vector<std::shared_ptr<Cursor>> cursors;
+  std::shared_ptr<Document> active;
+  std::vector<std::shared_ptr<Document>> cursors;
   Highlighter highlighter;
   Provider provider;
   ReplaceBuffer replaceBuffer;
@@ -46,7 +46,7 @@ public:
   void focus(bool focused);
   void invalidateCache() { cacheValid = false; }
 
-  std::shared_ptr<Cursor> hasEditedBuffer() const;
+  std::shared_ptr<Document> hasEditedBuffer() const;
   void startReplace();
   void tryComment();
   void checkChanged();
@@ -82,7 +82,7 @@ public:
   }
   void deleteActive() { deleteCursor(active); }
   void rotateBuffer();
-  void deleteCursor(const std::shared_ptr<Cursor> &cursor);
+  void deleteCursor(const std::shared_ptr<Document> &cursor);
   void activateCursor(size_t cursorIndex);
   void addCursor(std::string path);  
 };

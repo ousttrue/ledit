@@ -29,7 +29,7 @@ struct CommentEntry {
   std::u16string commentStr;
 };
 
-class Cursor {
+class Document {
   std::string _path;
 
 public:
@@ -61,8 +61,8 @@ public:
   std::vector<std::pair<int, std::u16string>> prepare;
   std::u16string *bind = nullptr;
 
-  Cursor() { lines.push_back(u""); }
-  static std::shared_ptr<Cursor> open(const std::string &path);
+  Document() { lines.push_back(u""); }
+  static std::shared_ptr<Document> open(const std::string &path);
 
   std::string getPath() const { return _path; }
   void setPath(const std::string &path) { _path = path; }

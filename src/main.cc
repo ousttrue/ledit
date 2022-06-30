@@ -4,7 +4,6 @@
 
 #include <glad.h>
 #include "state.h"
-#include "cursor.h"
 #include "font_atlas.h"
 #include "glfwapp.h"
 #include "glutil/gpu.h"

@@ -1,6 +1,5 @@
 #include "glfwapp.h"
 #include "state.h"
-#include "cursor.h"
 #include <GLFW/glfw3.h>
 
 static State *getState(GLFWwindow *window) {

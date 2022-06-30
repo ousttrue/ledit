@@ -1,5 +1,4 @@
 #include "state.h"
-#include "cursor.h"
 #include "languages.h"
 
 void State::resize(float w, float h) {
@@ -16,7 +15,7 @@ void State::focus(bool focused) {
   }
 }
 
-std::shared_ptr<Cursor> State::hasEditedBuffer() const {
+std::shared_ptr<Document> State::hasEditedBuffer() const {
   for (auto &cursor : cursors) {
     if (active->edited)
       return cursor;
@@ -428,7 +427,7 @@ void State::rotateBuffer() {
   activateCursor(next);
 }
 
-void State::deleteCursor(const std::shared_ptr<Cursor> &cursor) {
+void State::deleteCursor(const std::shared_ptr<Document> &cursor) {
 
   size_t i = 0;
   for (auto it = cursors.begin(); it != cursors.end(); ++it, ++i) {
@@ -475,7 +474,7 @@ void State::addCursor(std::string path) {
     path = "";
   }
 
-  auto newCursor = Cursor::open(path);
+  auto newCursor = Document::open(path);
   if (path.length()) {
     newCursor->branch = provider.getBranchName(path);
   }

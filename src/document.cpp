@@ -1,4 +1,4 @@
-#include "cursor.h"
+#include "document.h"
 #include "font_atlas.h"
 #include "u8String.h"
 #include "utils.h"
@@ -25,9 +25,9 @@ static std::vector<std::string> splitNewLine(const std::string &base) {
   return final;
 }
 
-std::shared_ptr<Cursor> Cursor::open(const std::string &path)
+std::shared_ptr<Document> Document::open(const std::string &path)
 {
-  auto cursor = std::shared_ptr<Cursor>(new Cursor);
+  auto cursor = std::shared_ptr<Document>(new Document);
   cursor->setPath(path);
   if(path.empty())
   {
@@ -64,7 +64,7 @@ std::shared_ptr<Cursor> Cursor::open(const std::string &path)
   return cursor;
 }
 
-void Cursor::setBounds(float height, float lineHeight) {
+void Document::setBounds(float height, float lineHeight) {
   this->height = height;
   this->lineHeight = lineHeight;
   float next = floor(height / lineHeight);
@@ -76,7 +76,7 @@ void Cursor::setBounds(float height, float lineHeight) {
   maxLines = next;
 }
 
-void Cursor::trimTrailingWhiteSpaces() {
+void Document::trimTrailingWhiteSpaces() {
   for (auto &line : lines) {
     char16_t last = line[line.length() - 1];
     if (last == ' ' || last == '\t' || last == '\r') {
@@ -96,7 +96,7 @@ void Cursor::trimTrailingWhiteSpaces() {
     x = lines[y].length();
 }
 
-void Cursor::comment(std::u16string commentStr) {
+void Document::comment(std::u16string commentStr) {
   if (!selection.active) {
     std::u16string firstLine = lines[y];
     int firstOffset = 0;
@@ -152,12 +152,12 @@ void Cursor::comment(std::u16string commentStr) {
   selection.stop();
 }
 
-void Cursor::setRenderStart(float x, float y) {
+void Document::setRenderStart(float x, float y) {
   startX = x;
   startY = y;
 }
 
-void Cursor::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
+void Document::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
   if (bind != nullptr)
     return;
   if (mouseY < startY)
@@ -186,7 +186,7 @@ void Cursor::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
   selection.diffY(y);
 }
 
-void Cursor::reset() {
+void Document::reset() {
   x = 0;
   y = 0;
   xSave = 0;
@@ -196,7 +196,7 @@ void Cursor::reset() {
   lines = {u""};
 }
 
-void Cursor::deleteSelection() {
+void Document::deleteSelection() {
   if (selection.yStart == selection.yEnd) {
     auto line = lines[y];
     historyPush(16, line.length(), line);
@@ -226,7 +226,7 @@ void Cursor::deleteSelection() {
   }
 }
 
-std::string Cursor::getSelection() {
+std::string Document::getSelection() {
   std::stringstream ss;
   if (selection.yStart == selection.yEnd) {
 
@@ -251,7 +251,7 @@ std::string Cursor::getSelection() {
   return ss.str();
 }
 
-int Cursor::getSelectionSize() {
+int Document::getSelectionSize() {
   if (!selection.active)
     return 0;
   if (selection.yStart == selection.yEnd)
@@ -267,20 +267,20 @@ int Cursor::getSelectionSize() {
   return offset;
 }
 
-void Cursor::bindTo(std::u16string *entry, bool useXSave) {
+void Document::bindTo(std::u16string *entry, bool useXSave) {
   bind = entry;
   xSave = x;
   this->useXFallback = useXSave;
   x = entry->length();
 }
 
-void Cursor::unbind() {
+void Document::unbind() {
   bind = nullptr;
   useXFallback = false;
   x = xSave;
 }
 
-std::u16string Cursor::search(std::u16string what, bool skipFirst,
+std::u16string Document::search(std::u16string what, bool skipFirst,
                               bool shouldOffset) {
   int i = shouldOffset ? y : 0;
   bool found = false;
@@ -306,7 +306,7 @@ std::u16string Cursor::search(std::u16string what, bool skipFirst,
   return u"[Not found]: ";
 }
 
-std::u16string Cursor::replaceOne(std::u16string what, std::u16string replace,
+std::u16string Document::replaceOne(std::u16string what, std::u16string replace,
                                   bool allowCenter, bool shouldOffset) {
   int i = shouldOffset ? y : 0;
   bool found = false;
@@ -342,7 +342,7 @@ std::u16string Cursor::replaceOne(std::u16string what, std::u16string replace,
   return u"[Not found]: ";
 }
 
-size_t Cursor::replaceAll(std::u16string what, std::u16string replace) {
+size_t Document::replaceAll(std::u16string what, std::u16string replace) {
   size_t c = 0;
   while (true) {
     auto res = replaceOne(what, replace, false);
@@ -358,7 +358,7 @@ size_t Cursor::replaceAll(std::u16string what, std::u16string replace) {
   return c;
 }
 
-int Cursor::findAnyOf(std::u16string str, std::u16string what) {
+int Document::findAnyOf(std::u16string str, std::u16string what) {
   if (str.length() == 0)
     return -1;
   std::u16string::const_iterator c;
@@ -374,7 +374,7 @@ int Cursor::findAnyOf(std::u16string str, std::u16string what) {
   return -1;
 }
 
-int Cursor::findAnyOfLast(std::u16string str, std::u16string what) {
+int Document::findAnyOfLast(std::u16string str, std::u16string what) {
   if (str.length() == 0)
     return -1;
   std::u16string::const_iterator c;
@@ -390,7 +390,7 @@ int Cursor::findAnyOfLast(std::u16string str, std::u16string what) {
   return -1;
 }
 
-void Cursor::advanceWord() {
+void Document::advanceWord() {
   std::u16string *target = bind ? bind : &lines[y];
   int offset = findAnyOf(target->substr(x), wordSeperator);
   if (offset == -1) {
@@ -407,7 +407,7 @@ void Cursor::advanceWord() {
   selection.diffY(y);
 }
 
-std::u16string Cursor::deleteWord() {
+std::u16string Document::deleteWord() {
   std::u16string *target = bind ? bind : &lines[y];
   int offset = findAnyOf(target->substr(x), wordSeperator);
   if (offset == -1)
@@ -418,7 +418,7 @@ std::u16string Cursor::deleteWord() {
   return w;
 }
 
-bool Cursor::undo() {
+bool Document::undo() {
   if (history.size() == 0)
     return false;
   HistoryEntry entry = history[0];
@@ -583,7 +583,7 @@ bool Cursor::undo() {
   return true;
 }
 
-void Cursor::advanceWordBackwards() {
+void Document::advanceWordBackwards() {
   std::u16string *target = bind ? bind : &lines[y];
   int offset = findAnyOfLast(target->substr(0, x), wordSeperator);
   if (offset == -1) {
@@ -600,7 +600,7 @@ void Cursor::advanceWordBackwards() {
   selection.diffY(y);
 }
 
-void Cursor::gotoLine(int l) {
+void Document::gotoLine(int l) {
   if (l - 1 > lines.size())
     return;
   x = 0;
@@ -610,7 +610,7 @@ void Cursor::gotoLine(int l) {
   center(l);
 }
 
-void Cursor::center(int l) {
+void Document::center(int l) {
   if (l >= skip && l <= skip + maxLines)
     return;
   if (l < maxLines / 2 || lines.size() < l)
@@ -623,7 +623,7 @@ void Cursor::center(int l) {
   }
 }
 
-std::vector<std::u16string> Cursor::split(std::u16string base,
+std::vector<std::u16string> Document::split(std::u16string base,
                                           std::u16string delimiter) {
   std::vector<std::u16string> final;
   size_t pos = 0;
@@ -637,7 +637,7 @@ std::vector<std::u16string> Cursor::split(std::u16string base,
   return final;
 }
 
-std::vector<std::string> Cursor::split(std::string base,
+std::vector<std::string> Document::split(std::string base,
                                        std::string delimiter) {
   std::vector<std::string> final;
   final.reserve(base.length() / 76);
@@ -652,7 +652,7 @@ std::vector<std::string> Cursor::split(std::string base,
   return final;
 }
 
-void Cursor::historyPush(int mode, int length, std::u16string content) {
+void Document::historyPush(int mode, int length, std::u16string content) {
   if (bind != nullptr)
     return;
   edited = true;
@@ -667,7 +667,7 @@ void Cursor::historyPush(int mode, int length, std::u16string content) {
   history.push_front(entry);
 }
 
-void Cursor::historyPush(int mode, int length, std::u16string content,
+void Document::historyPush(int mode, int length, std::u16string content,
                          void *userData) {
   if (bind != nullptr)
     return;
@@ -684,7 +684,7 @@ void Cursor::historyPush(int mode, int length, std::u16string content,
   history.push_front(entry);
 }
 
-void Cursor::historyPushWithExtra(int mode, int length, std::u16string content,
+void Document::historyPushWithExtra(int mode, int length, std::u16string content,
                                   std::vector<std::u16string> extra) {
   if (bind != nullptr)
     return;
@@ -701,7 +701,7 @@ void Cursor::historyPushWithExtra(int mode, int length, std::u16string content,
   history.push_front(entry);
 }
 
-bool Cursor::didChange(std::string path) {
+bool Document::didChange(std::string path) {
   if (!std::filesystem::exists(path))
     return false;
   bool result = last_write_time != std::filesystem::last_write_time(path);
@@ -709,7 +709,7 @@ bool Cursor::didChange(std::string path) {
   return result;
 }
 
-bool Cursor::reloadFile(std::string path) {
+bool Document::reloadFile(std::string path) {
   std::ifstream stream(path);
   if (!stream.is_open())
     return false;
@@ -736,7 +736,7 @@ bool Cursor::reloadFile(std::string path) {
   return true;
 }
 
-bool Cursor::openFile(std::string oldPath, std::string path) {
+bool Document::openFile(std::string oldPath, std::string path) {
   std::ifstream stream(path);
   if (oldPath.length()) {
     PosEntry entry;
@@ -788,7 +788,7 @@ bool Cursor::openFile(std::string oldPath, std::string path) {
   return true;
 }
 
-void Cursor::append(char16_t c) {
+void Document::append(char16_t c) {
   if (selection.active) {
     deleteSelection();
     selection.stop();
@@ -837,7 +837,7 @@ void Cursor::append(char16_t c) {
   }
 }
 
-void Cursor::appendWithLines(std::u16string content) {
+void Document::appendWithLines(std::u16string content) {
   if (bind) {
     append(content);
     return;
@@ -888,13 +888,13 @@ void Cursor::appendWithLines(std::u16string content) {
   center(y);
 }
 
-void Cursor::append(std::u16string content) {
+void Document::append(std::u16string content) {
   auto *target = bind ? bind : &lines[y];
   target->insert(x, content);
   x += content.length();
 }
 
-std::u16string Cursor::getCurrentAdvance(bool useSaveValue) {
+std::u16string Document::getCurrentAdvance(bool useSaveValue) {
   if (useSaveValue)
     return lines[y].substr(0, xSave);
 
@@ -903,7 +903,7 @@ std::u16string Cursor::getCurrentAdvance(bool useSaveValue) {
   return lines[y].substr(0, x);
 }
 
-void Cursor::removeBeforeCursor() {
+void Document::removeBeforeCursor() {
   if (selection.active)
     return;
   std::u16string *target = bind ? bind : &lines[y];
@@ -925,7 +925,7 @@ void Cursor::removeBeforeCursor() {
     x = target->length();
 }
 
-void Cursor::removeOne() {
+void Document::removeOne() {
   if (selection.active) {
     deleteSelection();
     selection.stop();
@@ -955,7 +955,7 @@ void Cursor::removeOne() {
   }
 }
 
-void Cursor::moveUp() {
+void Document::moveUp() {
   if (y == 0 || bind)
     return;
   std::u16string *target = &lines[y - 1];
@@ -965,7 +965,7 @@ void Cursor::moveUp() {
   selection.diff(x, y);
 }
 
-void Cursor::moveDown() {
+void Document::moveDown() {
   if (bind || y == lines.size() - 1)
     return;
   std::u16string *target = &lines[y + 1];
@@ -975,12 +975,12 @@ void Cursor::moveDown() {
   selection.diff(x, y);
 }
 
-void Cursor::jumpStart() {
+void Document::jumpStart() {
   x = 0;
   selection.diffX(x);
 }
 
-void Cursor::jumpEnd() {
+void Document::jumpEnd() {
   if (bind)
     x = bind->length();
   else
@@ -988,7 +988,7 @@ void Cursor::jumpEnd() {
   selection.diffX(x);
 }
 
-void Cursor::moveRight() {
+void Document::moveRight() {
   std::u16string *current = bind ? bind : &lines[y];
   if (x == current->length()) {
     if (y == lines.size() - 1 || bind)
@@ -1001,7 +1001,7 @@ void Cursor::moveRight() {
   selection.diff(x, y);
 }
 
-void Cursor::moveLeft() {
+void Document::moveLeft() {
   std::u16string *current = bind ? bind : &lines[y];
   if (x == 0) {
     if (y == 0 || bind)
@@ -1015,7 +1015,7 @@ void Cursor::moveLeft() {
   selection.diff(x, y);
 }
 
-bool Cursor::saveTo(std::string path) {
+bool Document::saveTo(std::string path) {
   if (!hasEnding(path, ".md"))
     trimTrailingWhiteSpaces();
   if (path == "-") {
@@ -1045,7 +1045,7 @@ bool Cursor::saveTo(std::string path) {
 }
 
 std::vector<std::pair<int, std::u16string>> *
-Cursor::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
+Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
   prepare.clear();
   int end = skip + maxLines;
   if (end >= lines.size()) {
@@ -1108,7 +1108,7 @@ Cursor::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
   return &prepare;
 }
 
-void Cursor::moveLine(int diff) {
+void Document::moveLine(int diff) {
   int targetY = y + diff;
   if (targetY < 0 || targetY == lines.size())
     return;
@@ -1124,7 +1124,7 @@ void Cursor::moveLine(int diff) {
   y = targetY;
 }
 
-void Cursor::calcTotalOffset() {
+void Document::calcTotalOffset() {
   int offset = 0;
   for (int i = 0; i < skip; i++) {
     offset += lines[i].length() + 1;
@@ -1132,7 +1132,7 @@ void Cursor::calcTotalOffset() {
   totalCharOffset = offset;
 }
 
-int Cursor::getTotalOffset() {
+int Document::getTotalOffset() {
   if (cachedY != y || cachedX != x || cachedMaxLines != maxLines) {
     calcTotalOffset();
     cachedMaxLines = maxLines;
@@ -1142,7 +1142,7 @@ int Cursor::getTotalOffset() {
   return totalCharOffset;
 }
 
-std::vector<std::string> Cursor::getSaveLocKeys() {
+std::vector<std::string> Document::getSaveLocKeys() {
   std::vector<std::string> ls;
   for (std::map<std::string, PosEntry>::iterator it = saveLocs.begin();
        it != saveLocs.end(); ++it) {
