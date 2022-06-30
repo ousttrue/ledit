@@ -22,7 +22,6 @@ public:
   std::vector<std::shared_ptr<Cursor>> cursors;
   Highlighter highlighter;
   Provider provider;
-  std::shared_ptr<class FontAtlas> atlas;
   ReplaceBuffer replaceBuffer;
   float WIDTH, HEIGHT;
   bool hasHighlighting;
@@ -36,10 +35,9 @@ public:
   bool highlightLine = true;
   int mode = 0;
   int round = 0;
-  int fontSize;
+
   State() {}
-  State(float w, float h, int fontSize) {
-    this->fontSize = fontSize;
+  State(float w, float h) {
     WIDTH = w;
     HEIGHT = h;
   }
@@ -86,6 +84,5 @@ public:
   void rotateBuffer();
   void deleteCursor(const std::shared_ptr<Cursor> &cursor);
   void activateCursor(size_t cursorIndex);
-  void addCursor(std::string path);
-  void init();
+  void addCursor(std::string path);  
 };

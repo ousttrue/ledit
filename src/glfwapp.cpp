@@ -25,6 +25,7 @@ void window_focus_callback(GLFWwindow *window, int focused) {
 
 void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods) {
+  assert(false);
   auto gState = getState(window);
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
     gState->invalidateCache();
@@ -32,8 +33,9 @@ void mouse_button_callback(GLFWwindow *window, int button, int action,
     glfwGetCursorPos(window, &xpos, &ypos);
     float xscale, yscale;
     glfwGetWindowContentScale(window, &xscale, &yscale);
-    gState->active->setPosFromMouse((float)xpos * xscale, (float)ypos * yscale,
-                                    gState->atlas.get());
+    // gState->active->setPosFromMouse((float)xpos * xscale, (float)ypos *
+    // yscale,
+    //                                 gState->atlas.get());
   }
 }
 
@@ -87,9 +89,9 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
           glfwSetWindowShouldClose(window, true);
         } else {
           gState->exitFlag = true;
-          gState->status =
-              create(edited->getPath().length() ? edited->getPath() : "New File") +
-              u" edited, press ESC again to exit";
+          gState->status = create(edited->getPath().length() ? edited->getPath()
+                                                             : "New File") +
+                           u" edited, press ESC again to exit";
         }
       }
     }
@@ -260,8 +262,8 @@ public:
     glfwTerminate();
   }
 
-  void* createWindow(const char *window_name, int width, int height,
-                    void *userpointer, bool allowTransparency) {
+  void *createWindow(const char *window_name, int width, int height,
+                     void *userpointer, bool allowTransparency) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -312,8 +314,8 @@ GlfwApp::GlfwApp() : _impl(new GlfwAppImpl) {}
 
 GlfwApp::~GlfwApp() { delete _impl; }
 
-void* GlfwApp::createWindow(const char *title, int w, int h, void *userpointer,
-                           bool allowTransparency) {
+void *GlfwApp::createWindow(const char *title, int w, int h, void *userpointer,
+                            bool allowTransparency) {
   return _impl->createWindow(title, w, h, userpointer, allowTransparency);
 }
 

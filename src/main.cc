@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
       "ledit: " + (initialPath.length() ? initialPath : "New File");
   GlfwApp app;
 
-  State state(1280, 720, 30);
+  State state(1280, 720);
   auto getProc =
       app.createWindow(window_name.c_str(), state.WIDTH, state.HEIGHT, &state,
                        state.provider.allowTransparency);
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
   state.addCursor(initialPath);
   // state.window = window;
 
-  state.init();
+  auto atlas = std::make_shared<FontAtlas>(state.provider.fontPath, 30);
 
   auto text = std::shared_ptr<Drawable>(new Drawable(
       Shader::createText(), sizeof(RenderChar), textVertexLayout,
@@ -76,10 +76,14 @@ int main(int argc, char **argv) {
 
   auto cursor_shader = Shader::createCursor();
 
+  glViewport(0, 0, state.WIDTH, state.HEIGHT);
   float xscale, yscale;
   std::tie(xscale, yscale) = app.getScale();
+  std::cout << state.WIDTH << ", " << state.HEIGHT << ":" << xscale << ", "
+            << yscale << std::endl;
   state.WIDTH *= xscale;
   state.HEIGHT *= yscale;
+
   int fontSize = 0;
   float WIDTH = 0;
   float HEIGHT = 0;
@@ -90,23 +94,20 @@ int main(int argc, char **argv) {
       continue;
     }
 
-    bool changed = false;
-    if (HEIGHT != state.HEIGHT || WIDTH != state.WIDTH ||
-        fontSize != state.fontSize) {
+    if (HEIGHT != state.HEIGHT || WIDTH != state.WIDTH) {
       WIDTH = state.WIDTH;
-      fontSize = state.fontSize;
       state.highlighter.wasCached = false;
       HEIGHT = state.HEIGHT;
-      changed = true;
     }
+    std::cout << state.WIDTH << ", " << state.HEIGHT << std::endl;
 
     auto cursor = state.active;
-    float toOffset = state.atlas->getHeight() * 1.15;
+    float toOffset = atlas->getHeight() * 1.15;
     bool isSearchMode = state.mode == 2 || state.mode == 6 || state.mode == 7 ||
                         state.mode == 32;
-    cursor->setBounds(HEIGHT - state.atlas->getHeight() - 6, toOffset);
+    cursor->setBounds(HEIGHT - atlas->getHeight() - 6, toOffset);
     if (maxRenderWidth != 0) {
-      cursor->getContent(state.atlas.get(), maxRenderWidth, true);
+      cursor->getContent(atlas.get(), maxRenderWidth, true);
     }
 
     auto be_color = state.provider.colors.background_color;
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
     text->set("resolution", WIDTH, HEIGHT);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state.atlas->getTexture());
+    glBindTexture(GL_TEXTURE_2D, atlas->getTexture());
     // glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
     std::vector<RenderChar> entries;
     std::u16string::const_iterator c;
@@ -144,16 +145,16 @@ int main(int argc, char **argv) {
                        : cursor->lines.size();
     if (state.showLineNumbers) {
       int biggestLine = std::to_string(maxLines).length();
-      auto maxLineAdvance = state.atlas->getAdvance(std::to_string(maxLines));
+      auto maxLineAdvance = atlas->getAdvance(std::to_string(maxLines));
       for (int i = start; i < maxLines; i++) {
         std::string value = std::to_string(i + 1);
-        auto tAdvance = state.atlas->getAdvance(value);
+        auto tAdvance = atlas->getAdvance(value);
         xpos += maxLineAdvance - tAdvance;
         linesAdvance = 0;
         for (cc = value.begin(); cc != value.end(); cc++) {
-          entries.push_back(state.atlas->render(
+          entries.push_back(atlas->render(
               *cc, xpos, ypos, state.provider.colors.line_number_color));
-          auto advance = state.atlas->getAdvance(*cc);
+          auto advance = atlas->getAdvance(*cc);
           xpos += advance;
           linesAdvance += advance;
         }
@@ -163,8 +164,7 @@ int main(int argc, char **argv) {
     }
     maxRenderWidth = (WIDTH / 2) - 20 - linesAdvance;
     auto skipNow = cursor->skip;
-    auto *allLines =
-        cursor->getContent(state.atlas.get(), maxRenderWidth, false);
+    auto *allLines = cursor->getContent(atlas.get(), maxRenderWidth, false);
     state.reHighlight();
     ypos = (-(HEIGHT / 2));
     xpos = -(int32_t)WIDTH / 2 + 20 + linesAdvance;
@@ -212,9 +212,9 @@ int main(int argc, char **argv) {
           cOffset++;
           charAdvance++;
           if (*c != '\t')
-            entries.push_back(state.atlas->render(*c, xpos, ypos, color));
-          xpos += state.atlas->getAdvance(*c);
-          if (xpos > (maxRenderWidth + state.atlas->getAdvance(*c)) &&
+            entries.push_back(atlas->render(*c, xpos, ypos, color));
+          xpos += atlas->getAdvance(*c);
+          if (xpos > (maxRenderWidth + atlas->getAdvance(*c)) &&
               c != content.end()) {
             int remaining = content.length() - (charAdvance);
 
@@ -255,9 +255,9 @@ int main(int argc, char **argv) {
         auto content = (*allLines)[x].second;
         for (c = content.begin(); c != content.end(); c++) {
           if (*c != '\t')
-            entries.push_back(state.atlas->render(*c, xpos, ypos, color));
-          xpos += state.atlas->getAdvance(*c);
-          if (xpos > maxRenderWidth + state.atlas->getAdvance(*c)) {
+            entries.push_back(atlas->render(*c, xpos, ypos, color));
+          xpos += atlas->getAdvance(*c);
+          if (xpos > maxRenderWidth + atlas->getAdvance(*c)) {
             break;
           }
         }
@@ -271,28 +271,28 @@ int main(int argc, char **argv) {
     ypos = (float)HEIGHT / 2 - toOffset - 10;
     std::u16string status = state.status;
     for (c = status.begin(); c != status.end(); c++) {
-      entries.push_back(state.atlas->render(*c, xpos, ypos, status_color));
-      xpos += state.atlas->getAdvance(*c);
+      entries.push_back(atlas->render(*c, xpos, ypos, status_color));
+      xpos += atlas->getAdvance(*c);
     }
-    float statusAdvance = state.atlas->getAdvance(state.status);
+    float statusAdvance = atlas->getAdvance(state.status);
     if (state.mode != 0 && state.mode != 32) {
       // draw minibuffer
       xpos = (-(int32_t)WIDTH / 2) + 20 + statusAdvance;
       ypos = (float)HEIGHT / 2 - toOffset - 10;
       std::u16string status = state.miniBuf;
       for (c = status.begin(); c != status.end(); c++) {
-        entries.push_back(state.atlas->render(
+        entries.push_back(atlas->render(
             *c, xpos, ypos, state.provider.colors.minibuffer_color));
-        xpos += state.atlas->getAdvance(*c);
+        xpos += atlas->getAdvance(*c);
       }
 
     } else {
       auto tabInfo = state.getTabInfo();
-      xpos = ((int32_t)WIDTH / 2) - state.atlas->getAdvance(tabInfo);
+      xpos = ((int32_t)WIDTH / 2) - atlas->getAdvance(tabInfo);
       ypos = (float)HEIGHT / 2 - toOffset - 10;
       for (c = tabInfo.begin(); c != tabInfo.end(); c++) {
-        entries.push_back(state.atlas->render(*c, xpos, ypos, status_color));
-        xpos += state.atlas->getAdvance(*c);
+        entries.push_back(atlas->render(*c, xpos, ypos, status_color));
+        xpos += atlas->getAdvance(*c);
       }
     }
 
@@ -306,8 +306,8 @@ int main(int argc, char **argv) {
       if (state.mode != 0 && state.mode != 32) {
         // use cursor for minibuffer
         float cursorX = -(int32_t)(WIDTH / 2) + 15 +
-                        (state.atlas->getAdvance(cursor->getCurrentAdvance())) +
-                        5 + statusAdvance;
+                        (atlas->getAdvance(cursor->getCurrentAdvance())) + 5 +
+                        statusAdvance;
         float cursorY = (float)HEIGHT / 2 - 10;
         cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
       if (isSearchMode || state.mode == 0) {
         float cursorX =
             -(int32_t)(WIDTH / 2) + 15 +
-            (state.atlas->getAdvance(cursor->getCurrentAdvance(isSearchMode))) +
+            (atlas->getAdvance(cursor->getCurrentAdvance(isSearchMode))) +
             linesAdvance + 4 - cursor->xSkip;
         if (cursorX > WIDTH / 2)
           cursorX = (WIDTH / 2) - 3;
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
           cursor->selection.getYBigger() > cursor->skip + cursor->maxLines) {
         // select everything
       } else {
-        maxRenderWidth += state.atlas->getAdvance(u" ");
+        maxRenderWidth += atlas->getAdvance(u" ");
         int yStart = cursor->selection.getYStart();
         int yEnd = cursor->selection.getYEnd();
         if (cursor->selection.yStart == cursor->selection.yEnd) {
@@ -342,10 +342,10 @@ int main(int argc, char **argv) {
             int smallerX = cursor->selection.getXSmaller();
             if (smallerX >= cursor->xOffset) {
 
-              float renderDistance = state.atlas->getAdvance(
+              float renderDistance = atlas->getAdvance(
                   (*allLines)[yEnd - cursor->skip].second.substr(
                       0, smallerX - cursor->xOffset));
-              float renderDistanceBigger = state.atlas->getAdvance(
+              float renderDistanceBigger = atlas->getAdvance(
                   (*allLines)[yEnd - cursor->skip].second.substr(
                       0, cursor->selection.getXBigger() - cursor->xOffset));
               if (renderDistance < maxRenderWidth * 2) {
@@ -357,7 +357,7 @@ int main(int argc, char **argv) {
                            start),
                      vec2f(renderDistanceBigger - renderDistance, toOffset)});
               } else {
-                float renderDistanceBigger = state.atlas->getAdvance(
+                float renderDistanceBigger = atlas->getAdvance(
                     (*allLines)[yEnd - cursor->skip].second.substr(
                         0, cursor->selection.getXBigger() - cursor->xOffset));
                 float start = ((float)HEIGHT / 2) - 5 -
@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
                            toOffset)});
               }
             } else {
-              float renderDistanceBigger = state.atlas->getAdvance(
+              float renderDistanceBigger = atlas->getAdvance(
                   (*allLines)[yEnd - cursor->skip].second.substr(
                       0, cursor->selection.getXBigger() - cursor->xOffset));
               float start = ((float)HEIGHT / 2) - 5 -
@@ -392,7 +392,7 @@ int main(int argc, char **argv) {
             int xStart = cursor->selection.getXStart();
             if (xStart >= cursor->xOffset) {
               float renderDistance =
-                  state.atlas->getAdvance((*allLines)[yEffective].second.substr(
+                  atlas->getAdvance((*allLines)[yEffective].second.substr(
                       0, xStart - cursor->xOffset));
               if (renderDistance < maxRenderWidth) {
                 if (yStart < yEnd) {
@@ -419,7 +419,7 @@ int main(int argc, char **argv) {
             int xStart = cursor->selection.getXEnd();
             if (xStart >= cursor->xOffset) {
               float renderDistance =
-                  state.atlas->getAdvance((*allLines)[yEffective].second.substr(
+                  atlas->getAdvance((*allLines)[yEffective].second.substr(
                       0, xStart - cursor->xOffset));
               if (renderDistance < maxRenderWidth) {
                 if (yEnd < yStart) {

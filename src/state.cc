@@ -1,13 +1,8 @@
-#include <glad.h>
 #include "state.h"
-#include "glutil/shader.h"
 #include "cursor.h"
-#include "font_atlas.h"
 #include "languages.h"
-#include <GLFW/glfw3.h>
 
 void State::resize(float w, float h) {
-  glViewport(0, 0, w, h);
   invalidateCache();
   WIDTH = w;
   HEIGHT = h;
@@ -68,21 +63,23 @@ void State::switchMode() {
 }
 
 void State::increaseFontSize(int value) {
-  if (mode != 0)
+  assert(false);
+  if (mode != 0) {
     return;
-  fontSize += value;
-  if (fontSize > 260) {
-    fontSize = 260;
-    status = u"Max font size reached [260]";
-    return;
-  } else if (fontSize < 10) {
-    fontSize = 10;
-    status = u"Min font size reached [10]";
-    return;
-  } else {
-    status = u"resize: [" + numberToString(fontSize) + u"]";
   }
-  atlas->renderFont(fontSize);
+  // fontSize += value;
+  // if (fontSize > 260) {
+  //   fontSize = 260;
+  //   status = u"Max font size reached [260]";
+  //   return;
+  // } else if (fontSize < 10) {
+  //   fontSize = 10;
+  //   status = u"Min font size reached [10]";
+  //   return;
+  // } else {
+  //   status = u"resize: [" + numberToString(fontSize) + u"]";
+  // }
+  // atlas->renderFont(fontSize);
 }
 
 void State::toggleSelection() {
@@ -117,17 +114,18 @@ void State::switchBuffer() {
 }
 
 void State::tryPaste() {
-  const char *contents = glfwGetClipboardString(NULL);
-  if (contents) {
-    std::u16string str = create(std::string(contents));
-    active->appendWithLines(str);
-    if (mode != 0)
-      return;
-    if (hasHighlighting)
-      highlighter.highlight(active->lines, &provider.colors, active->skip,
-                            active->maxLines, active->y);
-    status = u"Pasted " + numberToString(str.length()) + u" Characters";
-  }
+  assert(false);
+  // const char *contents = glfwGetClipboardString(NULL);
+  // if (contents) {
+  //   std::u16string str = create(std::string(contents));
+  //   active->appendWithLines(str);
+  //   if (mode != 0)
+  //     return;
+  //   if (hasHighlighting)
+  //     highlighter.highlight(active->lines, &provider.colors, active->skip,
+  //                           active->maxLines, active->y);
+  //   status = u"Pasted " + numberToString(str.length()) + u" Characters";
+  // }
 }
 
 void State::cut() {
@@ -136,10 +134,11 @@ void State::cut() {
     return;
   }
   std::string content = active->getSelection();
-  glfwSetClipboardString(NULL, content.c_str());
-  active->deleteSelection();
-  active->selection.stop();
-  status = u"Cut " + numberToString(content.length()) + u" Characters";
+  assert(false);
+  // glfwSetClipboardString(NULL, content.c_str());
+  // active->deleteSelection();
+  // active->selection.stop();
+  // status = u"Cut " + numberToString(content.length()) + u" Characters";
 }
 
 void State::tryCopy() {
@@ -148,9 +147,10 @@ void State::tryCopy() {
     return;
   }
   std::string content = active->getSelection();
-  glfwSetClipboardString(NULL, content.c_str());
-  active->selection.stop();
-  status = u"Copied " + numberToString(content.length()) + u" Characters";
+  assert(false);
+  // glfwSetClipboardString(NULL, content.c_str());
+  // active->selection.stop();
+  // status = u"Copied " + numberToString(content.length()) + u" Characters";
 }
 
 void State::save() {
@@ -297,10 +297,11 @@ void State::inform(bool success, bool shift_pressed) {
       }
 
     } else if (mode == 15) {
-      atlas->readFont(convert_str(miniBuf), fontSize);
-      provider.fontPath = convert_str(miniBuf);
-      provider.writeConfig();
-      status = u"Loaded font: " + miniBuf;
+      assert(false);
+      // atlas->readFont(convert_str(miniBuf), fontSize);
+      // provider.fontPath = convert_str(miniBuf);
+      // provider.writeConfig();
+      // status = u"Loaded font: " + miniBuf;
     } else if (mode == 25) {
       if (round == 0) {
         status = u"Mode: Text";
@@ -480,8 +481,4 @@ void State::addCursor(std::string path) {
   }
   cursors.push_back(newCursor);
   activateCursor(cursors.size() - 1);
-}
-
-void State::init() {
-  atlas = std::make_shared<FontAtlas>(provider.fontPath, fontSize);
 }
