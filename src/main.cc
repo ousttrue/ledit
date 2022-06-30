@@ -10,6 +10,7 @@
 #include "glutil/drawable.h"
 #include "glutil/shader.h"
 #include <memory>
+#include <iostream>
 #include <fstream>
 #ifndef __APPLE__
 #include <algorithm>

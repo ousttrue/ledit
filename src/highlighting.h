@@ -2,7 +2,7 @@
 #define HIGHLIGHTING_H
 #include "u8String.h"
 #include "la.h"
-#include "providers.h"
+#include "config_provider.h"
 #include <string>
 #include <map>
 #include <sstream>

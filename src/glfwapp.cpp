@@ -1,6 +1,7 @@
 #include "glfwapp.h"
 #include "state.h"
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 static State *getState(GLFWwindow *window) {
   return reinterpret_cast<State *>(glfwGetWindowUserPointer(window));

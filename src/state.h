@@ -4,7 +4,7 @@
 #include <memory>
 #include <stdint.h>
 #include "highlighting.h"
-#include "providers.h"
+#include "config_provider.h"
 #include "document.h"
 
 struct ReplaceBuffer {

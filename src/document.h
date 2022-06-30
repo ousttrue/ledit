@@ -31,12 +31,11 @@ struct CommentEntry {
 
 class Document {
   std::string _path;
-
-public:
-  bool _edited = false;
   bool _streamMode = false;
   bool _useXFallback;
+public:
   std::string _branch;
+  bool _edited = false;
   std::vector<std::u16string> _lines;
   std::map<std::string, PosEntry> _saveLocs;
   std::deque<HistoryEntry> _history;
