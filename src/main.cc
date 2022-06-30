@@ -64,7 +64,9 @@ int main(int argc, char **argv) {
   state.addCursor(initialPath);
   // state.window = window;
 
-  auto atlas = std::make_shared<FontAtlas>(state.provider.fontPath, 30);
+  auto fontHeight = 30;
+  auto fontWidth = 15;
+  auto atlas = std::make_shared<FontAtlas>(state.provider.fontPath, fontHeight);
 
   auto text = std::shared_ptr<Drawable>(new Drawable(
       Shader::createText(), sizeof(RenderChar), textVertexLayout,
@@ -106,7 +108,7 @@ int main(int argc, char **argv) {
                         state.mode == 32;
     cursor->setBounds(HEIGHT - atlas->getHeight() - 6, toOffset);
     if (maxRenderWidth != 0) {
-      cursor->getContent(atlas.get(), maxRenderWidth, true);
+      cursor->getContent(fontWidth, maxRenderWidth, true);
     }
 
     auto be_color = state.provider.colors.background_color;
@@ -163,7 +165,7 @@ int main(int argc, char **argv) {
     }
     maxRenderWidth = (WIDTH / 2) - 20 - linesAdvance;
     auto skipNow = cursor->_skip;
-    auto *allLines = cursor->getContent(atlas.get(), maxRenderWidth, false);
+    auto *allLines = cursor->getContent(fontWidth, maxRenderWidth, false);
     state.reHighlight();
     ypos = (-(HEIGHT / 2));
     xpos = -(int32_t)WIDTH / 2 + 20 + linesAdvance;

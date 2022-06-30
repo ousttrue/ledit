@@ -118,7 +118,7 @@ public:
   void jumpEnd();
   bool saveTo(std::string path);
   std::vector<std::pair<int, std::u16string>> *
-  getContent(class FontAtlas *atlas, float maxWidth, bool onlyCalculate);
+  getContent(int cellWidth, float maxWidth, bool onlyCalculate);
   int getTotalOffset();
   void moveLine(int diff);
   void moveRight();

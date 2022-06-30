@@ -1,10 +1,10 @@
 #include "document.h"
-#include "font_atlas.h"
 #include "u8String.h"
 #include "utils.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <assert.h>
 
 static std::vector<std::string> splitNewLine(const std::string &base) {
   std::stringstream stream;
@@ -55,6 +55,11 @@ static int findAnyOf(std::u16string str, std::u16string what) {
   }
 
   return -1;
+}
+
+static float getCells(const std::u16string &text) {
+  // TODO: utf-8
+  return text.size();
 }
 
 std::shared_ptr<Document> Document::open(const std::string &path) {
@@ -188,32 +193,33 @@ void Document::setRenderStart(float x, float y) {
 }
 
 void Document::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
-  if (_bind != nullptr)
-    return;
-  if (mouseY < _startY)
-    return;
-  int targetY = floor((mouseY - _startY) / _lineHeight);
-  if (_skip + targetY >= _lines.size())
-    targetY = _lines.size() - 1;
-  else
-    targetY += _skip;
-  auto *line = &_lines[targetY];
-  int targetX = 0;
-  if (mouseX > _startX) {
-    mouseX -= _startX;
-    auto *advances = atlas->getAllAdvance(*line, targetY);
-    float acc = 0;
-    for (auto &entry : *advances) {
-      acc += entry;
-      if (acc > mouseX)
-        break;
-      targetX++;
-    }
-  }
-  _x = targetX;
-  _y = targetY;
-  _selection.diffX(_x);
-  _selection.diffY(_y);
+  assert(false);
+  // if (_bind != nullptr)
+  //   return;
+  // if (mouseY < _startY)
+  //   return;
+  // int targetY = floor((mouseY - _startY) / _lineHeight);
+  // if (_skip + targetY >= _lines.size())
+  //   targetY = _lines.size() - 1;
+  // else
+  //   targetY += _skip;
+  // auto *line = &_lines[targetY];
+  // int targetX = 0;
+  // if (mouseX > _startX) {
+  //   mouseX -= _startX;
+  //   auto *advances = atlas->getAllAdvance(*line, targetY);
+  //   float acc = 0;
+  //   for (auto &entry : *advances) {
+  //     acc += entry;
+  //     if (acc > mouseX)
+  //       break;
+  //     targetX++;
+  //   }
+  // }
+  // _x = targetX;
+  // _y = targetY;
+  // _selection.diffX(_x);
+  // _selection.diffY(_y);
 }
 
 void Document::reset() {
@@ -1016,7 +1022,7 @@ bool Document::saveTo(std::string path) {
 }
 
 std::vector<std::pair<int, std::u16string>> *
-Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
+Document::getContent(int cellWidth, float maxWidth, bool onlyCalculate) {
   _prepare.clear();
   int end = _skip + _maxLines;
   if (end >= _lines.size()) {
@@ -1044,15 +1050,15 @@ Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
     auto s = _lines[i];
     _prepare.push_back(std::pair<int, std::u16string>(s.length(), s));
   }
-  float neededAdvance =
-      atlas->getAdvance((&_lines[_y])->substr(0, _useXFallback ? _xSave : _x));
+  auto substr = _lines[_y].substr(0, _useXFallback ? _xSave : _x);
+  float neededAdvance = getCells(substr) * cellWidth;
   int xOffset = 0;
   if (neededAdvance > maxWidth) {
-    auto *all = atlas->getAllAdvance(_lines[_y], _y - _skip);
+    // auto *all = atlas->getAllAdvance(_lines[_y], _y - _skip);
     auto len = _lines[_y].length();
     float acc = 0;
     _xSkip = 0;
-    for (auto value : *all) {
+    for (auto value : _lines[_y]) {
       if (acc > neededAdvance) {
 
         break;
