@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
       selection->set("resolution", WIDTH, HEIGHT);
       SelectionEntry entry{vec2f((-(int32_t)WIDTH / 2) + 10,
                                  (float)HEIGHT / 2 - 5 - toOffset -
-                                     ((cursor->y - cursor->skip) * toOffset)),
+                                     ((cursor->_y - cursor->_skip) * toOffset)),
                            vec2f((((int32_t)WIDTH / 2) * 2) - 20, toOffset)};
       selection->drawUploadInstance(&entry, sizeof(SelectionEntry), 6, 1);
     }
@@ -137,11 +137,11 @@ int main(int argc, char **argv) {
     std::string::const_iterator cc;
     float xpos = (-(int32_t)WIDTH / 2) + 10;
     float ypos = -(float)HEIGHT / 2;
-    int start = cursor->skip;
+    int start = cursor->_skip;
     float linesAdvance = 0;
-    int maxLines = cursor->skip + cursor->maxLines <= cursor->lines.size()
-                       ? cursor->skip + cursor->maxLines
-                       : cursor->lines.size();
+    int maxLines = cursor->_skip + (cursor->_maxLines <= cursor->_lines.size()
+                                       ? cursor->_skip + cursor->_maxLines
+                                       : cursor->_lines.size());
     if (state.showLineNumbers) {
       int biggestLine = std::to_string(maxLines).length();
       auto maxLineAdvance = atlas->getAdvance(std::to_string(maxLines));
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
       }
     }
     maxRenderWidth = (WIDTH / 2) - 20 - linesAdvance;
-    auto skipNow = cursor->skip;
+    auto skipNow = cursor->_skip;
     auto *allLines = cursor->getContent(atlas.get(), maxRenderWidth, false);
     state.reHighlight();
     ypos = (-(HEIGHT / 2));
@@ -171,10 +171,10 @@ int main(int argc, char **argv) {
     Vec4f color = state.provider.colors.default_color;
     if (state.hasHighlighting) {
       auto highlighter = state.highlighter;
-      int lineOffset = cursor->skip;
+      int lineOffset = cursor->_skip;
       auto *colored = state.highlighter.get();
       int cOffset = cursor->getTotalOffset();
-      int cxOffset = cursor->xOffset;
+      int cxOffset = cursor->_xOffset;
       //        std::cout << cxOffset << ":" << lineOffset << "\n";
 
       for (size_t x = 0; x < allLines->size(); x++) {
@@ -317,39 +317,39 @@ int main(int argc, char **argv) {
         float cursorX =
             -(int32_t)(WIDTH / 2) + 15 +
             (atlas->getAdvance(cursor->getCurrentAdvance(isSearchMode))) +
-            linesAdvance + 4 - cursor->xSkip;
+            linesAdvance + 4 - cursor->_xSkip;
         if (cursorX > WIDTH / 2)
           cursorX = (WIDTH / 2) - 3;
         float cursorY = -(int32_t)(HEIGHT / 2) + 4 +
-                        (toOffset * ((cursor->y - cursor->skip) + 1));
+                        (toOffset * ((cursor->_y - cursor->_skip) + 1));
         cursor_shader->set2f("cursor_pos", cursorX, -cursorY);
         text->drawTriangleStrip(4);
         glBindTexture(GL_TEXTURE_2D, 0);
       }
     }
-    if (cursor->selection.active) {
+    if (cursor->_selection.active) {
       std::vector<SelectionEntry> selectionBoundaries;
-      if (cursor->selection.getYSmaller() < cursor->skip &&
-          cursor->selection.getYBigger() > cursor->skip + cursor->maxLines) {
+      if (cursor->_selection.getYSmaller() < cursor->_skip &&
+          cursor->_selection.getYBigger() > cursor->_skip + cursor->_maxLines) {
         // select everything
       } else {
         maxRenderWidth += atlas->getAdvance(u" ");
-        int yStart = cursor->selection.getYStart();
-        int yEnd = cursor->selection.getYEnd();
-        if (cursor->selection.yStart == cursor->selection.yEnd) {
-          if (cursor->selection.xStart != cursor->selection.xEnd) {
-            int smallerX = cursor->selection.getXSmaller();
-            if (smallerX >= cursor->xOffset) {
+        int yStart = cursor->_selection.getYStart();
+        int yEnd = cursor->_selection.getYEnd();
+        if (cursor->_selection.yStart == cursor->_selection.yEnd) {
+          if (cursor->_selection.xStart != cursor->_selection.xEnd) {
+            int smallerX = cursor->_selection.getXSmaller();
+            if (smallerX >= cursor->_xOffset) {
 
               float renderDistance = atlas->getAdvance(
-                  (*allLines)[yEnd - cursor->skip].second.substr(
-                      0, smallerX - cursor->xOffset));
+                  (*allLines)[yEnd - cursor->_skip].second.substr(
+                      0, smallerX - cursor->_xOffset));
               float renderDistanceBigger = atlas->getAdvance(
-                  (*allLines)[yEnd - cursor->skip].second.substr(
-                      0, cursor->selection.getXBigger() - cursor->xOffset));
+                  (*allLines)[yEnd - cursor->_skip].second.substr(
+                      0, cursor->_selection.getXBigger() - cursor->_xOffset));
               if (renderDistance < maxRenderWidth * 2) {
                 float start = ((float)HEIGHT / 2) - 5 -
-                              (toOffset * ((yEnd - cursor->skip) + 1));
+                              (toOffset * ((yEnd - cursor->_skip) + 1));
                 selectionBoundaries.push_back(
                     {vec2f(-(int32_t)WIDTH / 2 + 20 + linesAdvance +
                                renderDistance,
@@ -357,10 +357,10 @@ int main(int argc, char **argv) {
                      vec2f(renderDistanceBigger - renderDistance, toOffset)});
               } else {
                 float renderDistanceBigger = atlas->getAdvance(
-                    (*allLines)[yEnd - cursor->skip].second.substr(
-                        0, cursor->selection.getXBigger() - cursor->xOffset));
+                    (*allLines)[yEnd - cursor->_skip].second.substr(
+                        0, cursor->_selection.getXBigger() - cursor->_xOffset));
                 float start = ((float)HEIGHT / 2) - 5 -
-                              (toOffset * ((yEnd - cursor->skip) + 1));
+                              (toOffset * ((yEnd - cursor->_skip) + 1));
                 selectionBoundaries.push_back(
                     {vec2f(-(int32_t)WIDTH / 2 + 20 + linesAdvance +
                                (maxRenderWidth - renderDistance),
@@ -372,10 +372,10 @@ int main(int argc, char **argv) {
               }
             } else {
               float renderDistanceBigger = atlas->getAdvance(
-                  (*allLines)[yEnd - cursor->skip].second.substr(
-                      0, cursor->selection.getXBigger() - cursor->xOffset));
+                  (*allLines)[yEnd - cursor->_skip].second.substr(
+                      0, cursor->_selection.getXBigger() - cursor->_xOffset));
               float start = ((float)HEIGHT / 2) - 5 -
-                            (toOffset * ((yEnd - cursor->skip) + 1));
+                            (toOffset * ((yEnd - cursor->_skip) + 1));
               selectionBoundaries.push_back(
                   {vec2f(-(int32_t)WIDTH / 2 + 20 + linesAdvance, start),
                    vec2f(renderDistanceBigger > maxRenderWidth * 2
@@ -385,14 +385,14 @@ int main(int argc, char **argv) {
             }
           }
         } else {
-          if (yStart >= cursor->skip &&
-              yStart <= cursor->skip + cursor->maxLines) {
-            int yEffective = cursor->selection.getYStart() - cursor->skip;
-            int xStart = cursor->selection.getXStart();
-            if (xStart >= cursor->xOffset) {
+          if (yStart >= cursor->_skip &&
+              yStart <= cursor->_skip + cursor->_maxLines) {
+            int yEffective = cursor->_selection.getYStart() - cursor->_skip;
+            int xStart = cursor->_selection.getXStart();
+            if (xStart >= cursor->_xOffset) {
               float renderDistance =
                   atlas->getAdvance((*allLines)[yEffective].second.substr(
-                      0, xStart - cursor->xOffset));
+                      0, xStart - cursor->_xOffset));
               if (renderDistance < maxRenderWidth) {
                 if (yStart < yEnd) {
 
@@ -413,13 +413,13 @@ int main(int argc, char **argv) {
               }
             }
           }
-          if (yEnd >= cursor->skip && yEnd <= cursor->skip + cursor->maxLines) {
-            int yEffective = cursor->selection.getYEnd() - cursor->skip;
-            int xStart = cursor->selection.getXEnd();
-            if (xStart >= cursor->xOffset) {
+          if (yEnd >= cursor->_skip && yEnd <= cursor->_skip + cursor->_maxLines) {
+            int yEffective = cursor->_selection.getYEnd() - cursor->_skip;
+            int xStart = cursor->_selection.getXEnd();
+            if (xStart >= cursor->_xOffset) {
               float renderDistance =
                   atlas->getAdvance((*allLines)[yEffective].second.substr(
-                      0, xStart - cursor->xOffset));
+                      0, xStart - cursor->_xOffset));
               if (renderDistance < maxRenderWidth) {
                 if (yEnd < yStart) {
                   float start =
@@ -442,14 +442,14 @@ int main(int argc, char **argv) {
           bool found = false;
           int offset = 0;
           int count = 0;
-          for (int i = cursor->selection.getYSmaller();
-               i < cursor->selection.getYBigger() - 1; i++) {
-            if (i > cursor->skip + cursor->maxLines)
+          for (int i = cursor->_selection.getYSmaller();
+               i < cursor->_selection.getYBigger() - 1; i++) {
+            if (i > cursor->_skip + cursor->_maxLines)
               break;
-            if (i >= cursor->skip - 1) {
+            if (i >= cursor->_skip - 1) {
               if (!found) {
                 found = true;
-                offset = i - cursor->skip;
+                offset = i - cursor->_skip;
               }
               count++;
             }

@@ -35,10 +35,10 @@ std::shared_ptr<Document> Document::open(const std::string &path)
   }
 
   if (path == "-") {
-    cursor->lines.clear();
+    cursor->_lines.clear();
     std::string line;
     while (std::getline(std::cin, line)) {
-      cursor->lines.push_back(create(line));
+      cursor->_lines.push_back(create(line));
     }
     return cursor;
   }
@@ -53,31 +53,31 @@ std::shared_ptr<Document> Document::open(const std::string &path)
   std::string c = ss.str();
   auto parts = splitNewLine(c);
 
-  cursor->lines = std::vector<std::u16string>(parts.size());
+  cursor->_lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {
-    cursor->lines[count] = create(ref);
+    cursor->_lines[count] = create(ref);
     count++;
   }
   stream.close();
-  cursor->last_write_time = std::filesystem::last_write_time(path);
+  cursor->_last_write_time = std::filesystem::last_write_time(path);
   return cursor;
 }
 
 void Document::setBounds(float height, float lineHeight) {
-  this->height = height;
-  this->lineHeight = lineHeight;
+  this->_height = height;
+  this->_lineHeight = lineHeight;
   float next = floor(height / lineHeight);
-  if (maxLines != 0) {
-    if (next < maxLines) {
-      skip += maxLines - next;
+  if (_maxLines != 0) {
+    if (next < _maxLines) {
+      _skip += _maxLines - next;
     }
   }
-  maxLines = next;
+  _maxLines = next;
 }
 
 void Document::trimTrailingWhiteSpaces() {
-  for (auto &line : lines) {
+  for (auto &line : _lines) {
     char16_t last = line[line.length() - 1];
     if (last == ' ' || last == '\t' || last == '\r') {
       int remaining = line.length();
@@ -92,13 +92,13 @@ void Document::trimTrailingWhiteSpaces() {
       line = line.substr(0, line.length() - count);
     }
   }
-  if (x > lines[y].length())
-    x = lines[y].length();
+  if (_x > _lines[_y].length())
+    _x = _lines[_y].length();
 }
 
 void Document::comment(std::u16string commentStr) {
-  if (!selection.active) {
-    std::u16string firstLine = lines[y];
+  if (!_selection.active) {
+    std::u16string firstLine = _lines[_y];
     int firstOffset = 0;
     for (char c : firstLine) {
       if (c != ' ' && c != '\t')
@@ -110,20 +110,20 @@ void Document::comment(std::u16string commentStr) {
     if (remove) {
       CommentEntry *cm = new CommentEntry();
       cm->commentStr = commentStr;
-      (&lines[y])->erase(firstOffset, commentStr.length());
+      (&_lines[_y])->erase(firstOffset, commentStr.length());
       historyPush(42, firstOffset, u"", cm);
     } else {
       CommentEntry *cm = new CommentEntry();
       cm->commentStr = commentStr;
-      (&lines[y])->insert(firstOffset, commentStr);
+      (&_lines[_y])->insert(firstOffset, commentStr);
       historyPush(43, firstOffset, u"", cm);
     }
     return;
   }
   int firstOffset = 0;
-  int yStart = selection.getYSmaller();
-  int yEnd = selection.getYBigger();
-  std::u16string firstLine = lines[yStart];
+  int yStart = _selection.getYSmaller();
+  int yEnd = _selection.getYBigger();
+  std::u16string firstLine = _lines[yStart];
   for (char c : firstLine) {
     if (c != ' ' && c != '\t')
       break;
@@ -138,39 +138,39 @@ void Document::comment(std::u16string commentStr) {
   if (remove) {
     historyPush(40, 0, u"", cm);
     for (size_t i = yStart; i < yEnd; i++) {
-      if ((&lines[i])->find(commentStr) != firstOffset)
+      if ((&_lines[i])->find(commentStr) != firstOffset)
         break;
-      (&lines[i])->erase(firstOffset, commentStr.length());
-      history[history.size() - 1].length += 1;
+      (&_lines[i])->erase(firstOffset, commentStr.length());
+      _history[_history.size() - 1].length += 1;
     }
   } else {
     historyPush(41, yEnd - yStart, u"", cm);
     for (size_t i = yStart; i < yEnd; i++) {
-      (&lines[i])->insert(firstOffset, commentStr);
+      (&_lines[i])->insert(firstOffset, commentStr);
     }
   }
-  selection.stop();
+  _selection.stop();
 }
 
 void Document::setRenderStart(float x, float y) {
-  startX = x;
-  startY = y;
+  _startX = x;
+  _startY = y;
 }
 
 void Document::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
-  if (bind != nullptr)
+  if (_bind != nullptr)
     return;
-  if (mouseY < startY)
+  if (mouseY < _startY)
     return;
-  int targetY = floor((mouseY - startY) / lineHeight);
-  if (skip + targetY >= lines.size())
-    targetY = lines.size() - 1;
+  int targetY = floor((mouseY - _startY) / _lineHeight);
+  if (_skip + targetY >= _lines.size())
+    targetY = _lines.size() - 1;
   else
-    targetY += skip;
-  auto *line = &lines[targetY];
+    targetY += _skip;
+  auto *line = &_lines[targetY];
   int targetX = 0;
-  if (mouseX > startX) {
-    mouseX -= startX;
+  if (mouseX > _startX) {
+    mouseX -= _startX;
     auto *advances = atlas->getAllAdvance(*line, targetY);
     float acc = 0;
     for (auto &entry : *advances) {
@@ -180,123 +180,123 @@ void Document::setPosFromMouse(float mouseX, float mouseY, FontAtlas *atlas) {
       targetX++;
     }
   }
-  x = targetX;
-  y = targetY;
-  selection.diffX(x);
-  selection.diffY(y);
+  _x = targetX;
+  _y = targetY;
+  _selection.diffX(_x);
+  _selection.diffY(_y);
 }
 
 void Document::reset() {
-  x = 0;
-  y = 0;
-  xSave = 0;
-  skip = 0;
-  prepare.clear();
-  history.clear();
-  lines = {u""};
+  _x = 0;
+  _y = 0;
+  _xSave = 0;
+  _skip = 0;
+  _prepare.clear();
+  _history.clear();
+  _lines = {u""};
 }
 
 void Document::deleteSelection() {
-  if (selection.yStart == selection.yEnd) {
-    auto line = lines[y];
+  if (_selection.yStart == _selection.yEnd) {
+    auto line = _lines[_y];
     historyPush(16, line.length(), line);
-    auto start = line.substr(0, selection.getXSmaller());
-    auto end = line.substr(selection.getXBigger());
-    lines[y] = start + end;
-    x = start.length();
+    auto start = line.substr(0, _selection.getXSmaller());
+    auto end = line.substr(_selection.getXBigger());
+    _lines[_y] = start + end;
+    _x = start.length();
   } else {
-    int ySmall = selection.getYSmaller();
-    int yBig = selection.getYBigger();
-    bool isStart = ySmall == selection.yStart;
-    std::u16string save = lines[ySmall];
+    int ySmall = _selection.getYSmaller();
+    int yBig = _selection.getYBigger();
+    bool isStart = ySmall == _selection.yStart;
+    std::u16string save = _lines[ySmall];
     std::vector<std::u16string> toSave;
-    lines[ySmall] =
-        lines[ySmall].substr(0, isStart ? selection.xStart : selection.xEnd);
+    _lines[ySmall] =
+        _lines[ySmall].substr(0, isStart ? _selection.xStart : _selection.xEnd);
     for (int i = 0; i < yBig - ySmall; i++) {
-      toSave.push_back(lines[ySmall + 1]);
+      toSave.push_back(_lines[ySmall + 1]);
       if (i == yBig - ySmall - 1) {
-        x = lines[ySmall].length();
-        lines[ySmall] += lines[ySmall + 1].substr(isStart ? selection.xEnd
-                                                          : selection.xStart);
+        _x = _lines[ySmall].length();
+        _lines[ySmall] += _lines[ySmall + 1].substr(isStart ? _selection.xEnd
+                                                          : _selection.xStart);
       }
-      lines.erase(lines.begin() + ySmall + 1);
+      _lines.erase(_lines.begin() + ySmall + 1);
     }
-    y = ySmall;
+    _y = ySmall;
     historyPushWithExtra(16, save.length(), save, toSave);
   }
 }
 
 std::string Document::getSelection() {
   std::stringstream ss;
-  if (selection.yStart == selection.yEnd) {
+  if (_selection.yStart == _selection.yEnd) {
 
-    ss << convert_str(lines[selection.yStart].substr(
-        selection.getXSmaller(),
-        selection.getXBigger() - selection.getXSmaller()));
+    ss << convert_str(_lines[_selection.yStart].substr(
+        _selection.getXSmaller(),
+        _selection.getXBigger() - _selection.getXSmaller()));
   } else {
-    int ySmall = selection.getYSmaller();
-    int yBig = selection.getYBigger();
-    bool isStart = ySmall == selection.yStart;
+    int ySmall = _selection.getYSmaller();
+    int yBig = _selection.getYBigger();
+    bool isStart = ySmall == _selection.yStart;
     ss << convert_str(
-        lines[ySmall].substr(isStart ? selection.xStart : selection.xEnd));
+        _lines[ySmall].substr(isStart ? _selection.xStart : _selection.xEnd));
     ss << "\n";
     for (int i = ySmall + 1; i < yBig; i++) {
-      ss << convert_str(lines[i]);
+      ss << convert_str(_lines[i]);
       if (i != yBig)
         ss << "\n";
     }
     ss << convert_str(
-        lines[yBig].substr(0, isStart ? selection.xEnd : selection.xStart));
+        _lines[yBig].substr(0, isStart ? _selection.xEnd : _selection.xStart));
   }
   return ss.str();
 }
 
 int Document::getSelectionSize() {
-  if (!selection.active)
+  if (!_selection.active)
     return 0;
-  if (selection.yStart == selection.yEnd)
-    return selection.getXBigger() - selection.getXSmaller();
+  if (_selection.yStart == _selection.yEnd)
+    return _selection.getXBigger() - _selection.getXSmaller();
   int offset =
-      (lines[selection.yStart].length() - selection.xStart) + selection.xEnd;
-  for (int w = selection.getYSmaller(); w < selection.getYBigger(); w++) {
-    if (w == selection.getYSmaller() || w == selection.getYBigger()) {
+      (_lines[_selection.yStart].length() - _selection.xStart) + _selection.xEnd;
+  for (int w = _selection.getYSmaller(); w < _selection.getYBigger(); w++) {
+    if (w == _selection.getYSmaller() || w == _selection.getYBigger()) {
       continue;
     }
-    offset += lines[w].length() + 1;
+    offset += _lines[w].length() + 1;
   }
   return offset;
 }
 
 void Document::bindTo(std::u16string *entry, bool useXSave) {
-  bind = entry;
-  xSave = x;
-  this->useXFallback = useXSave;
-  x = entry->length();
+  _bind = entry;
+  _xSave = _x;
+  this->_useXFallback = useXSave;
+  _x = entry->length();
 }
 
 void Document::unbind() {
-  bind = nullptr;
-  useXFallback = false;
-  x = xSave;
+  _bind = nullptr;
+  _useXFallback = false;
+  _x = _xSave;
 }
 
 std::u16string Document::search(std::u16string what, bool skipFirst,
                               bool shouldOffset) {
-  int i = shouldOffset ? y : 0;
+  int i = shouldOffset ? _y : 0;
   bool found = false;
-  for (int x = i; x < lines.size(); x++) {
-    auto line = lines[x];
+  for (int x = i; x < _lines.size(); x++) {
+    auto line = _lines[x];
     auto where = line.find(what);
     if (where != std::string::npos) {
       if (skipFirst && !found) {
         found = true;
         continue;
       }
-      y = x;
+      _y = x;
       // we are in non 0 mode here, set savex
-      xSave = where;
+      _xSave = where;
       center(i);
-      return u"[At: " + numberToString(y + 1) + u":" +
+      return u"[At: " + numberToString(_y + 1) + u":" +
              numberToString(where + 1) + u"]: ";
     }
     i++;
@@ -308,36 +308,36 @@ std::u16string Document::search(std::u16string what, bool skipFirst,
 
 std::u16string Document::replaceOne(std::u16string what, std::u16string replace,
                                   bool allowCenter, bool shouldOffset) {
-  int i = shouldOffset ? y : 0;
+  int i = shouldOffset ? _y : 0;
   bool found = false;
-  for (int x = i; x < lines.size(); x++) {
-    auto line = lines[x];
-    auto where = line.find(what, xSave);
+  for (int x = i; x < _lines.size(); x++) {
+    auto line = _lines[x];
+    auto where = line.find(what, _xSave);
     if (where != std::string::npos) {
-      auto xNow = this->x;
-      auto yNow = this->y;
-      this->y = x;
-      this->x = where;
+      auto xNow = this->_x;
+      auto yNow = this->_y;
+      this->_y = x;
+      this->_x = where;
       historyPush(30, line.length(), line);
       std::u16string base = line.substr(0, where);
       base += replace;
       if (line.length() - where - what.length() > 0)
         base += line.substr(where + what.length());
-      lines[x] = base;
+      _lines[x] = base;
       if (allowCenter) {
-        this->y = i;
+        this->_y = i;
         center(i);
       } else {
-        this->y = yNow;
+        this->_y = yNow;
       }
-      xSave = where + replace.length();
-      this->x = xNow;
-      return u"[At: " + numberToString(y + 1) + u":" +
+      _xSave = where + replace.length();
+      this->_x = xNow;
+      return u"[At: " + numberToString(_y + 1) + u":" +
              numberToString(where + 1) + u"]: ";
     }
     i++;
-    if (x < lines.size() - 1)
-      xSave = 0;
+    if (x < _lines.size() - 1)
+      _xSave = 0;
   }
   return u"[Not found]: ";
 }
@@ -351,9 +351,9 @@ size_t Document::replaceAll(std::u16string what, std::u16string replace) {
     c++;
   }
   historyPush(31, c, u"");
-  if (x > lines[y].length()) {
-    x = lines[y].length();
-    xSave = x;
+  if (_x > _lines[_y].length()) {
+    _x = _lines[_y].length();
+    _xSave = _x;
   }
   return c;
 }
@@ -391,146 +391,146 @@ int Document::findAnyOfLast(std::u16string str, std::u16string what) {
 }
 
 void Document::advanceWord() {
-  std::u16string *target = bind ? bind : &lines[y];
-  int offset = findAnyOf(target->substr(x), wordSeperator);
+  std::u16string *target = _bind ? _bind : &_lines[_y];
+  int offset = findAnyOf(target->substr(_x), wordSeperator);
   if (offset == -1) {
-    if (x == target->length() && y < lines.size() - 1) {
-      x = 0;
-      y++;
+    if (_x == target->length() && _y < _lines.size() - 1) {
+      _x = 0;
+      _y++;
     } else {
-      x = target->length();
+      _x = target->length();
     }
   } else {
-    x += offset;
+    _x += offset;
   }
-  selection.diffX(x);
-  selection.diffY(y);
+  _selection.diffX(_x);
+  _selection.diffY(_y);
 }
 
 std::u16string Document::deleteWord() {
-  std::u16string *target = bind ? bind : &lines[y];
-  int offset = findAnyOf(target->substr(x), wordSeperator);
+  std::u16string *target = _bind ? _bind : &_lines[_y];
+  int offset = findAnyOf(target->substr(_x), wordSeperator);
   if (offset == -1)
-    offset = target->length() - x;
-  std::u16string w = target->substr(x, offset);
-  target->erase(x, offset);
+    offset = target->length() - _x;
+  std::u16string w = target->substr(_x, offset);
+  target->erase(_x, offset);
   historyPush(3, w.length(), w);
   return w;
 }
 
 bool Document::undo() {
-  if (history.size() == 0)
+  if (_history.size() == 0)
     return false;
-  HistoryEntry entry = history[0];
-  history.pop_front();
+  HistoryEntry entry = _history[0];
+  _history.pop_front();
   switch (entry.mode) {
   case 3: {
-    x = entry.x;
-    y = entry.y;
-    center(y);
-    (&lines[y])->insert(x, entry.content);
-    x += entry.length;
+    _x = entry.x;
+    _y = entry.y;
+    center(_y);
+    (&_lines[_y])->insert(_x, entry.content);
+    _x += entry.length;
     break;
   }
   case 4: {
-    y = entry.y;
-    x = entry.x;
-    center(y);
-    (&lines[y])->insert(x - 1, entry.content);
+    _y = entry.y;
+    _x = entry.x;
+    center(_y);
+    (&_lines[_y])->insert(_x - 1, entry.content);
     break;
   }
   case 5: {
-    y = entry.y;
-    x = 0;
-    lines.insert(lines.begin() + y, entry.content);
-    center(y);
+    _y = entry.y;
+    _x = 0;
+    _lines.insert(_lines.begin() + _y, entry.content);
+    center(_y);
     if (entry.extra.size())
-      lines[y - 1] = entry.extra[0];
+      _lines[_y - 1] = entry.extra[0];
     break;
   }
   case 6: {
-    y = entry.y;
-    x = (&lines[y])->length();
-    lines.erase(lines.begin() + y + 1);
-    center(y);
+    _y = entry.y;
+    _x = (&_lines[_y])->length();
+    _lines.erase(_lines.begin() + _y + 1);
+    center(_y);
     break;
   }
   case 7: {
-    y = entry.y;
-    x = 0;
+    _y = entry.y;
+    _x = 0;
     if (entry.extra.size()) {
-      lines[y] = entry.content + entry.extra[0];
-      lines.erase(lines.begin() + y + 1);
+      _lines[_y] = entry.content + entry.extra[0];
+      _lines.erase(_lines.begin() + _y + 1);
     } else {
-      lines.erase(lines.begin() + y);
+      _lines.erase(_lines.begin() + _y);
     }
-    center(y);
+    center(_y);
     break;
   }
   case 8: {
-    y = entry.y;
-    x = entry.x;
-    (&lines[y])->erase(x, 1);
-    center(y);
+    _y = entry.y;
+    _x = entry.x;
+    (&_lines[_y])->erase(_x, 1);
+    center(_y);
     break;
   }
   case 10: {
-    x = 0;
-    y = entry.y;
-    lines[y] = entry.content;
-    lines.insert(lines.begin() + y, u"");
-    center(y);
+    _x = 0;
+    _y = entry.y;
+    _lines[_y] = entry.content;
+    _lines.insert(_lines.begin() + _y, u"");
+    center(_y);
     break;
   }
   case 11: {
-    y = entry.y;
-    x = entry.x;
-    (&lines[y])->insert(x, entry.content);
+    _y = entry.y;
+    _x = entry.x;
+    (&_lines[_y])->insert(_x, entry.content);
     break;
   }
   case 15: {
     if (entry.length == 0) {
-      y = entry.y;
-      x = entry.x;
-      (&lines[y])->erase(x, entry.content.length());
+      _y = entry.y;
+      _x = entry.x;
+      (&_lines[_y])->erase(_x, entry.content.length());
     } else {
-      y = entry.y - entry.length;
-      x = entry.x;
+      _y = entry.y - entry.length;
+      _x = entry.x;
       for (size_t i = 0; i < entry.length; i++) {
-        lines.erase(lines.begin() + y + 1);
+        _lines.erase(_lines.begin() + _y + 1);
       }
-      lines[y] = entry.content;
+      _lines[_y] = entry.content;
     }
     break;
   }
   case 16: {
     if (entry.extra.size()) {
-      y = entry.y;
-      x = entry.x;
-      lines[y] = entry.content;
+      _y = entry.y;
+      _x = entry.x;
+      _lines[_y] = entry.content;
       for (int i = 0; i < entry.extra.size(); i++) {
-        lines.insert(lines.begin() + y + i + 1, entry.extra[i]);
+        _lines.insert(_lines.begin() + _y + i + 1, entry.extra[i]);
       }
 
     } else {
-      y = entry.y;
-      x = entry.x;
-      lines[y] = entry.content;
+      _y = entry.y;
+      _x = entry.x;
+      _lines[_y] = entry.content;
     }
     break;
   }
   case 30: {
-    y = entry.y;
-    x = entry.x;
-    lines[y] = entry.content;
+    _y = entry.y;
+    _x = entry.x;
+    _lines[_y] = entry.content;
     break;
   }
   case 31: {
     for (size_t i = 0; i < entry.length; i++) {
       undo();
     }
-    y = entry.y;
-    x = entry.x;
+    _y = entry.y;
+    _x = entry.x;
     break;
   }
   case 40: {
@@ -538,11 +538,11 @@ bool Document::undo() {
     std::u16string commentStr = data->commentStr;
     size_t len = entry.length;
     for (size_t i = data->yStart; i < data->yStart + len; i++) {
-      (&lines[i])->insert(data->firstOffset, commentStr);
+      (&_lines[i])->insert(data->firstOffset, commentStr);
     }
-    x = data->firstOffset;
-    y = data->yStart;
-    center(y);
+    _x = data->firstOffset;
+    _y = data->yStart;
+    center(_y);
     delete data;
     break;
   }
@@ -551,29 +551,29 @@ bool Document::undo() {
     std::u16string commentStr = data->commentStr;
     size_t len = entry.length;
     for (size_t i = data->yStart; i < data->yStart + len; i++) {
-      (&lines[i])->erase(data->firstOffset, commentStr.length());
+      (&_lines[i])->erase(data->firstOffset, commentStr.length());
     }
-    x = data->firstOffset;
-    y = data->yStart;
-    center(y);
+    _x = data->firstOffset;
+    _y = data->yStart;
+    center(_y);
     delete data;
     break;
   }
   case 42: {
-    y = entry.y;
-    center(y);
+    _y = entry.y;
+    center(_y);
     CommentEntry *data = static_cast<CommentEntry *>(entry.userData);
-    (&lines[y])->insert(entry.length, data->commentStr);
-    x = entry.x;
+    (&_lines[_y])->insert(entry.length, data->commentStr);
+    _x = entry.x;
     delete data;
     break;
   }
   case 43: {
-    y = entry.y;
-    center(y);
+    _y = entry.y;
+    center(_y);
     CommentEntry *data = static_cast<CommentEntry *>(entry.userData);
-    (&lines[y])->erase(entry.length, data->commentStr.length());
-    x = entry.x;
+    (&_lines[_y])->erase(entry.length, data->commentStr.length());
+    _x = entry.x;
     delete data;
     break;
   }
@@ -584,42 +584,42 @@ bool Document::undo() {
 }
 
 void Document::advanceWordBackwards() {
-  std::u16string *target = bind ? bind : &lines[y];
-  int offset = findAnyOfLast(target->substr(0, x), wordSeperator);
+  std::u16string *target = _bind ? _bind : &_lines[_y];
+  int offset = findAnyOfLast(target->substr(0, _x), wordSeperator);
   if (offset == -1) {
-    if (x == 0 && y > 0) {
-      y--;
-      x = lines[y].length();
+    if (_x == 0 && _y > 0) {
+      _y--;
+      _x = _lines[_y].length();
     } else {
-      x = 0;
+      _x = 0;
     }
   } else {
-    x -= offset;
+    _x -= offset;
   }
-  selection.diffX(x);
-  selection.diffY(y);
+  _selection.diffX(_x);
+  _selection.diffY(_y);
 }
 
 void Document::gotoLine(int l) {
-  if (l - 1 > lines.size())
+  if (l - 1 > _lines.size())
     return;
-  x = 0;
-  xSave = 0;
-  y = l - 1;
-  selection.diff(x, y);
+  _x = 0;
+  _xSave = 0;
+  _y = l - 1;
+  _selection.diff(_x, _y);
   center(l);
 }
 
 void Document::center(int l) {
-  if (l >= skip && l <= skip + maxLines)
+  if (l >= _skip && l <= _skip + _maxLines)
     return;
-  if (l < maxLines / 2 || lines.size() < l)
-    skip = 0;
+  if (l < _maxLines / 2 || _lines.size() < l)
+    _skip = 0;
   else {
-    if (lines.size() - l < maxLines / 2)
-      skip = lines.size() - maxLines;
+    if (_lines.size() - l < _maxLines / 2)
+      _skip = _lines.size() - _maxLines;
     else
-      skip = l - (maxLines / 2);
+      _skip = l - (_maxLines / 2);
   }
 }
 
@@ -653,59 +653,59 @@ std::vector<std::string> Document::split(std::string base,
 }
 
 void Document::historyPush(int mode, int length, std::u16string content) {
-  if (bind != nullptr)
+  if (_bind != nullptr)
     return;
-  edited = true;
+  _edited = true;
   HistoryEntry entry;
-  entry.x = x;
-  entry.y = y;
+  entry.x = _x;
+  entry.y = _y;
   entry.mode = mode;
   entry.length = length;
   entry.content = content;
-  if (history.size() > 5000)
-    history.pop_back();
-  history.push_front(entry);
+  if (_history.size() > 5000)
+    _history.pop_back();
+  _history.push_front(entry);
 }
 
 void Document::historyPush(int mode, int length, std::u16string content,
                          void *userData) {
-  if (bind != nullptr)
+  if (_bind != nullptr)
     return;
-  edited = true;
+  _edited = true;
   HistoryEntry entry;
-  entry.x = x;
-  entry.y = y;
+  entry.x = _x;
+  entry.y = _y;
   entry.userData = userData;
   entry.mode = mode;
   entry.length = length;
   entry.content = content;
-  if (history.size() > 5000)
-    history.pop_back();
-  history.push_front(entry);
+  if (_history.size() > 5000)
+    _history.pop_back();
+  _history.push_front(entry);
 }
 
 void Document::historyPushWithExtra(int mode, int length, std::u16string content,
                                   std::vector<std::u16string> extra) {
-  if (bind != nullptr)
+  if (_bind != nullptr)
     return;
-  edited = true;
+  _edited = true;
   HistoryEntry entry;
-  entry.x = x;
-  entry.y = y;
+  entry.x = _x;
+  entry.y = _y;
   entry.mode = mode;
   entry.length = length;
   entry.content = content;
   entry.extra = extra;
-  if (history.size() > 5000)
-    history.pop_back();
-  history.push_front(entry);
+  if (_history.size() > 5000)
+    _history.pop_back();
+  _history.push_front(entry);
 }
 
 bool Document::didChange(std::string path) {
   if (!std::filesystem::exists(path))
     return false;
-  bool result = last_write_time != std::filesystem::last_write_time(path);
-  last_write_time = std::filesystem::last_write_time(path);
+  bool result = _last_write_time != std::filesystem::last_write_time(path);
+  _last_write_time = std::filesystem::last_write_time(path);
   return result;
 }
 
@@ -713,26 +713,26 @@ bool Document::reloadFile(std::string path) {
   std::ifstream stream(path);
   if (!stream.is_open())
     return false;
-  history.clear();
+  _history.clear();
   std::stringstream ss;
   ss << stream.rdbuf();
   std::string c = ss.str();
   auto parts = splitNewLine(c);
-  lines = std::vector<std::u16string>(parts.size());
+  _lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {
-    lines[count] = create(ref);
+    _lines[count] = create(ref);
     count++;
   }
-  if (skip > lines.size() - maxLines)
-    skip = 0;
-  if (y > lines.size() - 1)
-    y = lines.size() - 1;
-  if (x > lines[y].length())
-    x = lines[y].length();
+  if (_skip > _lines.size() - _maxLines)
+    _skip = 0;
+  if (_y > _lines.size() - 1)
+    _y = _lines.size() - 1;
+  if (_x > _lines[_y].length())
+    _x = _lines[_y].length();
   stream.close();
-  last_write_time = std::filesystem::last_write_time(path);
-  edited = false;
+  _last_write_time = std::filesystem::last_write_time(path);
+  _edited = false;
   return true;
 }
 
@@ -740,63 +740,63 @@ bool Document::openFile(std::string oldPath, std::string path) {
   std::ifstream stream(path);
   if (oldPath.length()) {
     PosEntry entry;
-    entry.x = xSave;
-    entry.y = y;
-    entry.skip = skip;
-    saveLocs[oldPath] = entry;
+    entry.x = _xSave;
+    entry.y = _y;
+    entry.skip = _skip;
+    _saveLocs[oldPath] = entry;
   }
 
   if (!stream.is_open()) {
     return false;
   }
-  if (saveLocs.count(path)) {
-    PosEntry savedEntry = saveLocs[path];
-    x = savedEntry.x;
-    y = savedEntry.y;
-    skip = savedEntry.skip;
+  if (_saveLocs.count(path)) {
+    PosEntry savedEntry = _saveLocs[path];
+    _x = savedEntry.x;
+    _y = savedEntry.y;
+    _skip = savedEntry.skip;
   } else {
     {
       // this is purely for the buffer switcher
       PosEntry idk{0, 0, 0};
-      saveLocs[path] = idk;
+      _saveLocs[path] = idk;
     }
-    x = 0;
-    y = 0;
-    skip = 0;
+    _x = 0;
+    _y = 0;
+    _skip = 0;
   }
-  xSave = x;
-  history.clear();
+  _xSave = _x;
+  _history.clear();
   std::stringstream ss;
   ss << stream.rdbuf();
   std::string c = ss.str();
   auto parts = splitNewLine(c);
-  lines = std::vector<std::u16string>(parts.size());
+  _lines = std::vector<std::u16string>(parts.size());
   size_t count = 0;
   for (const auto &ref : parts) {
-    lines[count] = create(ref);
+    _lines[count] = create(ref);
     count++;
   }
-  if (skip > lines.size() - maxLines)
-    skip = 0;
-  if (y > lines.size() - 1)
-    y = lines.size() - 1;
-  if (x > lines[y].length())
-    x = lines[y].length();
+  if (_skip > _lines.size() - _maxLines)
+    _skip = 0;
+  if (_y > _lines.size() - 1)
+    _y = _lines.size() - 1;
+  if (_x > _lines[_y].length())
+    _x = _lines[_y].length();
   stream.close();
-  last_write_time = std::filesystem::last_write_time(path);
-  edited = false;
+  _last_write_time = std::filesystem::last_write_time(path);
+  _edited = false;
   return true;
 }
 
 void Document::append(char16_t c) {
-  if (selection.active) {
+  if (_selection.active) {
     deleteSelection();
-    selection.stop();
+    _selection.stop();
   }
-  if (c == '\n' && bind == nullptr) {
-    auto pos = lines.begin() + y;
-    std::u16string *current = &lines[y];
-    bool isEnd = x == current->length();
+  if (c == '\n' && _bind == nullptr) {
+    auto pos = _lines.begin() + _y;
+    std::u16string *current = &_lines[_y];
+    bool isEnd = _x == current->length();
     if (isEnd) {
       std::u16string base;
       for (size_t t = 0; t < current->length(); t++) {
@@ -807,44 +807,44 @@ void Document::append(char16_t c) {
         else
           break;
       }
-      lines.insert(pos + 1, base);
+      _lines.insert(pos + 1, base);
       historyPush(6, 0, u"");
-      x = base.length();
-      y++;
+      _x = base.length();
+      _y++;
       return;
 
     } else {
-      if (x == 0) {
-        lines.insert(pos, u"");
+      if (_x == 0) {
+        _lines.insert(pos, u"");
         historyPush(7, 0, u"");
       } else {
-        std::u16string toWrite = current->substr(0, x);
-        std::u16string next = current->substr(x);
-        lines[y] = toWrite;
-        lines.insert(pos + 1, next);
+        std::u16string toWrite = current->substr(0, _x);
+        std::u16string next = current->substr(_x);
+        _lines[_y] = toWrite;
+        _lines.insert(pos + 1, next);
         historyPushWithExtra(7, toWrite.length(), toWrite, {next});
       }
     }
-    y++;
-    x = 0;
+    _y++;
+    _x = 0;
   } else {
-    auto *target = bind ? bind : &lines[y];
+    auto *target = _bind ? _bind : &_lines[_y];
     std::u16string content;
     content += c;
-    target->insert(x, content);
+    target->insert(_x, content);
     historyPush(8, 1, content);
-    x++;
+    _x++;
   }
 }
 
 void Document::appendWithLines(std::u16string content) {
-  if (bind) {
+  if (_bind) {
     append(content);
     return;
   }
-  if (selection.active) {
+  if (_selection.active) {
     deleteSelection();
-    selection.stop();
+    _selection.stop();
   }
   bool hasSave = false;
   std::u16string save;
@@ -855,164 +855,164 @@ void Document::appendWithLines(std::u16string content) {
   for (int i = 0; i < contentLines.size(); i++) {
     if (i == 0) {
       if (contentLines.size() == 1) {
-        (&lines[y])->insert(x, contentLines[i]);
+        (&_lines[_y])->insert(_x, contentLines[i]);
         historyPush(15, 0, contentLines[i]);
       } else {
-        historySave = lines[y];
+        historySave = _lines[_y];
         hasSave = true;
-        save = lines[y].substr(x);
-        lines[y] = lines[y].substr(0, x) + contentLines[i];
-        saveX = x;
+        save = _lines[_y].substr(_x);
+        _lines[_y] = _lines[_y].substr(0, _x) + contentLines[i];
+        saveX = _x;
       }
-      x += contentLines[i].length();
+      _x += contentLines[i].length();
       continue;
     } else if (i == contentLines.size() - 1) {
-      lines.insert(lines.begin() + y + 1, contentLines[i]);
-      y++;
+      _lines.insert(_lines.begin() + _y + 1, contentLines[i]);
+      _y++;
       count++;
 
-      x = contentLines[i].length();
+      _x = contentLines[i].length();
     } else {
-      lines.insert(lines.begin() + y + 1, contentLines[i]);
-      y++;
+      _lines.insert(_lines.begin() + _y + 1, contentLines[i]);
+      _y++;
       count++;
     }
   }
   if (hasSave) {
-    lines[y] += save;
-    int xx = x;
-    x = saveX;
+    _lines[_y] += save;
+    int xx = _x;
+    _x = saveX;
     historyPush(15, count, historySave);
-    x = xx;
+    _x = xx;
   }
-  center(y);
+  center(_y);
 }
 
 void Document::append(std::u16string content) {
-  auto *target = bind ? bind : &lines[y];
-  target->insert(x, content);
-  x += content.length();
+  auto *target = _bind ? _bind : &_lines[_y];
+  target->insert(_x, content);
+  _x += content.length();
 }
 
 std::u16string Document::getCurrentAdvance(bool useSaveValue) {
   if (useSaveValue)
-    return lines[y].substr(0, xSave);
+    return _lines[_y].substr(0, _xSave);
 
-  if (bind)
-    return bind->substr(0, x);
-  return lines[y].substr(0, x);
+  if (_bind)
+    return _bind->substr(0, _x);
+  return _lines[_y].substr(0, _x);
 }
 
 void Document::removeBeforeCursor() {
-  if (selection.active)
+  if (_selection.active)
     return;
-  std::u16string *target = bind ? bind : &lines[y];
-  if (x == 0 && target->length() == 0) {
-    if (y == lines.size() - 1 || bind)
+  std::u16string *target = _bind ? _bind : &_lines[_y];
+  if (_x == 0 && target->length() == 0) {
+    if (_y == _lines.size() - 1 || _bind)
       return;
     if (target->length() == 0) {
-      std::u16string next = lines[y + 1];
-      lines[y] = next;
-      lines.erase(lines.begin() + y + 1);
+      std::u16string next = _lines[_y + 1];
+      _lines[_y] = next;
+      _lines.erase(_lines.begin() + _y + 1);
       historyPush(10, next.length(), next);
       return;
     }
   }
-  historyPush(11, 1, std::u16string(1, (*target)[x]));
-  target->erase(x, 1);
+  historyPush(11, 1, std::u16string(1, (*target)[_x]));
+  target->erase(_x, 1);
 
-  if (x > target->length())
-    x = target->length();
+  if (_x > target->length())
+    _x = target->length();
 }
 
 void Document::removeOne() {
-  if (selection.active) {
+  if (_selection.active) {
     deleteSelection();
-    selection.stop();
+    _selection.stop();
     return;
   }
-  std::u16string *target = bind ? bind : &lines[y];
-  if (x == 0) {
-    if (y == 0 || bind)
+  std::u16string *target = _bind ? _bind : &_lines[_y];
+  if (_x == 0) {
+    if (_y == 0 || _bind)
       return;
 
-    std::u16string *copyTarget = &lines[y - 1];
+    std::u16string *copyTarget = &_lines[_y - 1];
     int xTarget = copyTarget->length();
     if (target->length() > 0) {
-      historyPushWithExtra(5, (&lines[y])->length(), lines[y], {lines[y - 1]});
+      historyPushWithExtra(5, (&_lines[_y])->length(), _lines[_y], {_lines[_y - 1]});
       copyTarget->append(*target);
     } else {
-      historyPush(5, (&lines[y])->length(), lines[y]);
+      historyPush(5, (&_lines[_y])->length(), _lines[_y]);
     }
-    lines.erase(lines.begin() + y);
+    _lines.erase(_lines.begin() + _y);
 
-    y--;
-    x = xTarget;
+    _y--;
+    _x = xTarget;
   } else {
-    historyPush(4, 1, std::u16string(1, (*target)[x - 1]));
-    target->erase(x - 1, 1);
-    x--;
+    historyPush(4, 1, std::u16string(1, (*target)[_x - 1]));
+    target->erase(_x - 1, 1);
+    _x--;
   }
 }
 
 void Document::moveUp() {
-  if (y == 0 || bind)
+  if (_y == 0 || _bind)
     return;
-  std::u16string *target = &lines[y - 1];
-  int targetX = target->length() < x ? target->length() : x;
-  x = targetX;
-  y--;
-  selection.diff(x, y);
+  std::u16string *target = &_lines[_y - 1];
+  int targetX = target->length() < _x ? target->length() : _x;
+  _x = targetX;
+  _y--;
+  _selection.diff(_x, _y);
 }
 
 void Document::moveDown() {
-  if (bind || y == lines.size() - 1)
+  if (_bind || _y == _lines.size() - 1)
     return;
-  std::u16string *target = &lines[y + 1];
-  int targetX = target->length() < x ? target->length() : x;
-  x = targetX;
-  y++;
-  selection.diff(x, y);
+  std::u16string *target = &_lines[_y + 1];
+  int targetX = target->length() < _x ? target->length() : _x;
+  _x = targetX;
+  _y++;
+  _selection.diff(_x, _y);
 }
 
 void Document::jumpStart() {
-  x = 0;
-  selection.diffX(x);
+  _x = 0;
+  _selection.diffX(_x);
 }
 
 void Document::jumpEnd() {
-  if (bind)
-    x = bind->length();
+  if (_bind)
+    _x = _bind->length();
   else
-    x = lines[y].length();
-  selection.diffX(x);
+    _x = _lines[_y].length();
+  _selection.diffX(_x);
 }
 
 void Document::moveRight() {
-  std::u16string *current = bind ? bind : &lines[y];
-  if (x == current->length()) {
-    if (y == lines.size() - 1 || bind)
+  std::u16string *current = _bind ? _bind : &_lines[_y];
+  if (_x == current->length()) {
+    if (_y == _lines.size() - 1 || _bind)
       return;
-    y++;
-    x = 0;
+    _y++;
+    _x = 0;
   } else {
-    x++;
+    _x++;
   }
-  selection.diff(x, y);
+  _selection.diff(_x, _y);
 }
 
 void Document::moveLeft() {
-  std::u16string *current = bind ? bind : &lines[y];
-  if (x == 0) {
-    if (y == 0 || bind)
+  std::u16string *current = _bind ? _bind : &_lines[_y];
+  if (_x == 0) {
+    if (_y == 0 || _bind)
       return;
-    std::u16string *target = &lines[y - 1];
-    y--;
-    x = target->length();
+    std::u16string *target = &_lines[_y - 1];
+    _y--;
+    _x = target->length();
   } else {
-    x--;
+    _x--;
   }
-  selection.diff(x, y);
+  _selection.diff(_x, _y);
 }
 
 bool Document::saveTo(std::string path) {
@@ -1020,9 +1020,9 @@ bool Document::saveTo(std::string path) {
     trimTrailingWhiteSpaces();
   if (path == "-") {
     auto &stream = std::cout;
-    for (size_t i = 0; i < lines.size(); i++) {
-      stream << convert_str(lines[i]);
-      if (i < lines.size() - 1)
+    for (size_t i = 0; i < _lines.size(); i++) {
+      stream << convert_str(_lines[i]);
+      if (i < _lines.size() - 1)
         stream << "\n";
     }
     exit(0);
@@ -1032,34 +1032,34 @@ bool Document::saveTo(std::string path) {
   if (!stream.is_open()) {
     return false;
   }
-  for (size_t i = 0; i < lines.size(); i++) {
-    stream << convert_str(lines[i]);
-    if (i < lines.size() - 1)
+  for (size_t i = 0; i < _lines.size(); i++) {
+    stream << convert_str(_lines[i]);
+    if (i < _lines.size() - 1)
       stream << "\n";
   }
   stream.flush();
   stream.close();
-  last_write_time = std::filesystem::last_write_time(path);
-  edited = false;
+  _last_write_time = std::filesystem::last_write_time(path);
+  _edited = false;
   return true;
 }
 
 std::vector<std::pair<int, std::u16string>> *
 Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
-  prepare.clear();
-  int end = skip + maxLines;
-  if (end >= lines.size()) {
-    end = lines.size();
-    skip = end - maxLines;
-    if (skip < 0)
-      skip = 0;
+  _prepare.clear();
+  int end = _skip + _maxLines;
+  if (end >= _lines.size()) {
+    end = _lines.size();
+    _skip = end - _maxLines;
+    if (_skip < 0)
+      _skip = 0;
   }
-  if (y == end && end < (lines.size())) {
-    skip++;
+  if (_y == end && end < (_lines.size())) {
+    _skip++;
     end++;
 
-  } else if (y < skip && skip > 0) {
-    skip--;
+  } else if (_y < _skip && _skip > 0) {
+    _skip--;
     end--;
   }
   /*
@@ -1069,18 +1069,18 @@ Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
   if (onlyCalculate)
     return nullptr;
   int maxSupport = 0;
-  for (size_t i = skip; i < end; i++) {
-    auto s = lines[i];
-    prepare.push_back(std::pair<int, std::u16string>(s.length(), s));
+  for (size_t i = _skip; i < end; i++) {
+    auto s = _lines[i];
+    _prepare.push_back(std::pair<int, std::u16string>(s.length(), s));
   }
   float neededAdvance =
-      atlas->getAdvance((&lines[y])->substr(0, useXFallback ? xSave : x));
+      atlas->getAdvance((&_lines[_y])->substr(0, _useXFallback ? _xSave : _x));
   int xOffset = 0;
   if (neededAdvance > maxWidth) {
-    auto *all = atlas->getAllAdvance(lines[y], y - skip);
-    auto len = lines[y].length();
+    auto *all = atlas->getAllAdvance(_lines[_y], _y - _skip);
+    auto len = _lines[_y].length();
     float acc = 0;
-    xSkip = 0;
+    _xSkip = 0;
     for (auto value : *all) {
       if (acc > neededAdvance) {
 
@@ -1088,64 +1088,64 @@ Document::getContent(FontAtlas *atlas, float maxWidth, bool onlyCalculate) {
       }
       if (acc > maxWidth * 2) {
         xOffset++;
-        xSkip += value;
+        _xSkip += value;
       }
       acc += value;
     }
   } else {
-    xSkip = 0;
+    _xSkip = 0;
   }
   if (xOffset > 0) {
-    for (size_t i = 0; i < prepare.size(); i++) {
-      auto a = prepare[i].second;
+    for (size_t i = 0; i < _prepare.size(); i++) {
+      auto a = _prepare[i].second;
       if (a.length() > xOffset)
-        prepare[i].second = a.substr(xOffset);
+        _prepare[i].second = a.substr(xOffset);
       else
-        prepare[i].second = u"";
+        _prepare[i].second = u"";
     }
   }
-  this->xOffset = xOffset;
-  return &prepare;
+  this->_xOffset = xOffset;
+  return &_prepare;
 }
 
 void Document::moveLine(int diff) {
-  int targetY = y + diff;
-  if (targetY < 0 || targetY == lines.size())
+  int targetY = _y + diff;
+  if (targetY < 0 || targetY == _lines.size())
     return;
-  if (targetY < y) {
-    std::u16string toOffset = lines[y - 1];
-    lines[y - 1] = lines[y];
-    lines[y] = toOffset;
+  if (targetY < _y) {
+    std::u16string toOffset = _lines[_y - 1];
+    _lines[_y - 1] = _lines[_y];
+    _lines[_y] = toOffset;
   } else {
-    std::u16string toOffset = lines[y + 1];
-    lines[y + 1] = lines[y];
-    lines[y] = toOffset;
+    std::u16string toOffset = _lines[_y + 1];
+    _lines[_y + 1] = _lines[_y];
+    _lines[_y] = toOffset;
   }
-  y = targetY;
+  _y = targetY;
 }
 
 void Document::calcTotalOffset() {
   int offset = 0;
-  for (int i = 0; i < skip; i++) {
-    offset += lines[i].length() + 1;
+  for (int i = 0; i < _skip; i++) {
+    offset += _lines[i].length() + 1;
   }
-  totalCharOffset = offset;
+  _totalCharOffset = offset;
 }
 
 int Document::getTotalOffset() {
-  if (cachedY != y || cachedX != x || cachedMaxLines != maxLines) {
+  if (_cachedY != _y || _cachedX != _x || _cachedMaxLines != _maxLines) {
     calcTotalOffset();
-    cachedMaxLines = maxLines;
-    cachedY = y;
-    cachedX = x;
+    _cachedMaxLines = _maxLines;
+    _cachedY = _y;
+    _cachedX = _x;
   }
-  return totalCharOffset;
+  return _totalCharOffset;
 }
 
 std::vector<std::string> Document::getSaveLocKeys() {
   std::vector<std::string> ls;
-  for (std::map<std::string, PosEntry>::iterator it = saveLocs.begin();
-       it != saveLocs.end(); ++it) {
+  for (std::map<std::string, PosEntry>::iterator it = _saveLocs.begin();
+       it != _saveLocs.end(); ++it) {
     ls.push_back(it->first);
   }
   return ls;

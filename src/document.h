@@ -33,35 +33,35 @@ class Document {
   std::string _path;
 
 public:
-  bool edited = false;
-  bool streamMode = false;
-  bool useXFallback;
-  std::string branch;
-  std::vector<std::u16string> lines;
-  std::map<std::string, PosEntry> saveLocs;
-  std::deque<HistoryEntry> history;
-  std::filesystem::file_time_type last_write_time;
-  Selection selection;
-  int x = 0;
-  int y = 0;
-  int xSave = 0;
-  int skip = 0;
-  int xOffset = 0;
-  float xSkip = 0;
-  float height = 0;
-  float lineHeight = 0;
-  int maxLines = 0;
-  int totalCharOffset = 0;
-  int cachedY = 0;
-  int cachedX = 0;
-  int cachedMaxLines = 0;
+  bool _edited = false;
+  bool _streamMode = false;
+  bool _useXFallback;
+  std::string _branch;
+  std::vector<std::u16string> _lines;
+  std::map<std::string, PosEntry> _saveLocs;
+  std::deque<HistoryEntry> _history;
+  std::filesystem::file_time_type _last_write_time;
+  Selection _selection;
+  int _x = 0;
+  int _y = 0;
+  int _xSave = 0;
+  int _skip = 0;
+  int _xOffset = 0;
+  float _xSkip = 0;
+  float _height = 0;
+  float _lineHeight = 0;
+  int _maxLines = 0;
+  int _totalCharOffset = 0;
+  int _cachedY = 0;
+  int _cachedX = 0;
+  int _cachedMaxLines = 0;
 
-  float startX = 0;
-  float startY = 0;
-  std::vector<std::pair<int, std::u16string>> prepare;
-  std::u16string *bind = nullptr;
+  float _startX = 0;
+  float _startY = 0;
+  std::vector<std::pair<int, std::u16string>> _prepare;
+  std::u16string *_bind = nullptr;
 
-  Document() { lines.push_back(u""); }
+  Document() { _lines.push_back(u""); }
   static std::shared_ptr<Document> open(const std::string &path);
 
   std::string getPath() const { return _path; }

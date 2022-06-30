@@ -76,8 +76,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
   gState->invalidateCache();
   if (key == GLFW_KEY_ESCAPE) {
     if (action == GLFW_PRESS) {
-      if (gState->active->selection.active) {
-        gState->active->selection.stop();
+      if (gState->active->_selection.active) {
+        gState->active->_selection.stop();
         return;
       }
       if (gState->mode != 0) {
@@ -166,7 +166,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
         gState->renderCoords();
       }
       if (action == GLFW_PRESS && key == GLFW_KEY_E) {
-        cursor->gotoLine(cursor->lines.size());
+        cursor->gotoLine(cursor->_lines.size());
         gState->renderCoords();
       }
       return;

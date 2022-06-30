@@ -17,7 +17,7 @@ void State::focus(bool focused) {
 
 std::shared_ptr<Document> State::hasEditedBuffer() const {
   for (auto &cursor : cursors) {
-    if (active->edited)
+    if (active->_edited)
       return cursor;
   }
   return {};
@@ -41,7 +41,7 @@ void State::tryComment() {
 void State::checkChanged() {
   if (!path.length())
     return;
-  active->branch = provider.getBranchName(path);
+  active->_branch = provider.getBranchName(path);
   auto changed = active->didChange(path);
   if (changed) {
     miniBuf = u"";
@@ -84,10 +84,10 @@ void State::increaseFontSize(int value) {
 void State::toggleSelection() {
   if (mode != 0)
     return;
-  if (active->selection.active)
-    active->selection.stop();
+  if (active->_selection.active)
+    active->_selection.stop();
   else
-    active->selection.activate(active->x, active->y);
+    active->_selection.activate(active->_x, active->_y);
   renderCoords();
 }
 
@@ -128,7 +128,7 @@ void State::tryPaste() {
 }
 
 void State::cut() {
-  if (!active->selection.active) {
+  if (!active->_selection.active) {
     status = u"Aborted: No selection";
     return;
   }
@@ -141,7 +141,7 @@ void State::cut() {
 }
 
 void State::tryCopy() {
-  if (!active->selection.active) {
+  if (!active->_selection.active) {
     status = u"Aborted: No selection";
     return;
   }
@@ -193,8 +193,8 @@ void State::open() {
 
 void State::reHighlight() {
   if (hasHighlighting)
-    highlighter.highlight(active->lines, &provider.colors, active->skip,
-                          active->maxLines, active->y);
+    highlighter.highlight(active->_lines, &provider.colors, active->_skip,
+                          active->_maxLines, active->_y);
 }
 
 void State::undo() {
@@ -220,8 +220,8 @@ void State::tryEnableHighlighting() {
       has_language(fileName == u"Dockerfile" ? "dockerfile" : ext);
   if (lang) {
     highlighter.setLanguage(*lang, lang->modeName);
-    highlighter.highlight(active->lines, &provider.colors, active->skip,
-                          active->maxLines, active->y);
+    highlighter.highlight(active->_lines, &provider.colors, active->_skip,
+                          active->_maxLines, active->_y);
     hasHighlighting = true;
   } else {
     hasHighlighting = false;
@@ -388,14 +388,14 @@ void State::renderCoords() {
   // highlighter.highlight(active->lines, &provider.colors, active->skip,
   // active->maxLines, active->y);
   std::u16string branch;
-  if (active->branch.length()) {
-    branch = u" [git: " + create(active->branch) + u"]";
+  if (active->_branch.length()) {
+    branch = u" [git: " + create(active->_branch) + u"]";
   }
-  status = numberToString(active->y + 1) + u":" +
-           numberToString(active->x + 1) + branch + u" [" + fileName + u": " +
+  status = numberToString(active->_y + 1) + u":" +
+           numberToString(active->_x + 1) + branch + u" [" + fileName + u": " +
            (hasHighlighting ? highlighter.languageName : u"Text") +
-           u"] History Size: " + numberToString(active->history.size());
-  if (active->selection.active)
+           u"] History Size: " + numberToString(active->_history.size());
+  if (active->_selection.active)
     status +=
         u" Selected: [" + numberToString(active->getSelectionSize()) + u"]";
 }
@@ -476,7 +476,7 @@ void State::addCursor(std::string path) {
 
   auto newCursor = Document::open(path);
   if (path.length()) {
-    newCursor->branch = provider.getBranchName(path);
+    newCursor->_branch = provider.getBranchName(path);
   }
   cursors.push_back(newCursor);
   activateCursor(cursors.size() - 1);
